@@ -20,3 +20,7 @@ runs/*
 
 # environment
 .env
+
+# runtime artifact of the verify endpoint (the report is the response;
+# the file is a local convenience, and serverless hosts are read-only)
+runs/**/verify_report.json

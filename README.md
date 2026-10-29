@@ -169,6 +169,30 @@ evidence bundles, not an LLM observability dashboard. Pages:
 | `#/harness` | the harness spec |
 | `#/families` | check families + the OWASP Agentic crosswalk |
 
+## Deploy
+
+The repo deploys to Vercel as two [services](https://vercel.com/docs/services)
+in one project, no build flags and no environment variables:
+
+| service | root | what it is |
+|---------|------|------------|
+| `web` | `web/` | the UI, Next.js static export |
+| `api` | `/` | the FastAPI app, entrypoint `main:app` |
+
+`vercel.json` declares both and routes `/api/*` to `api`, everything
+else to `web`. `main.py` is the ASGI entry: the same `create_app` that
+`tieout serve` runs, reading the committed runs from the bundle. Set the
+project framework to **Services** (the config is ignored otherwise) and
+deploy from the repository root. The Python pin lives in
+`.python-version` and must be a version the runtime offers (3.12, 3.13,
+3.14); dependencies come from `pyproject.toml` + `uv.lock`, so the
+deployed environment is the locked one.
+
+Serverless notes, both handled in code: the filesystem is read-only, so
+the verify endpoint's `verify_report.json` write is best-effort and the
+report is the response; and run ids are paths, so nested evidence
+(`demo-stability/a`) is served as-is.
+
 ## Check families
 
 - **F1, the five failure checks** (policy v1): ported unchanged from the
@@ -233,7 +257,9 @@ tieout/            the package
 web/               the UI (Next.js, static export, black and white)
 docs/              format spec, harness spec, method note, matrix
 runs/              reproducible runs (demo, demo-f2, demo-stability are committed)
-tests/             pytest: verify/tamper/selftest/CLI/server/stats/diff/F2/v1.1
+tests/             pytest: verify/tamper/selftest/CLI/server/stats/diff/F2/v1.1/deploy
+main.py            ASGI entry for serverless hosts (the same app, no uvicorn)
+vercel.json        two services: web (Next.js) + api (FastAPI); /api/* to api
 Makefile           install / lint / test / selftest / demo / verify / ui / serve
 SECURITY.md        how to verify the repo's claims, how to report
 CONTRIBUTING.md    the evidence doctrine, how to add families and pages
