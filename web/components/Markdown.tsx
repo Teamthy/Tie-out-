@@ -1,9 +1,8 @@
-"use client";
-
 import type { ReactNode } from "react";
 
 /**
- * Minimal markdown renderer for the project's own docs: headings,
+ * Minimal markdown renderer for the project's own docs and articles:
+ * headings,
  * paragraphs, bullet/numbered lists, tables, fenced code, inline code,
  * bold, links. Deliberately small: the docs are written for this
  * renderer and the CLI.

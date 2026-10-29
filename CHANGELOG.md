@@ -4,6 +4,39 @@ All notable changes to this project are documented here. The format is
 based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-10-30
+
+### Added
+
+- **The blog**: twelve articles across five disciplines (AI red teaming,
+  security, research engineering, evaluation, software engineering) at
+  `/blog` and `/blog/<slug>`. Each piece ends with a "verified against"
+  block naming the committed bundles, tests or public artifacts its
+  numbers were taken from. Bodies are markdown in `web/content/blog/`,
+  metadata in `web/lib/posts.ts`, rendered at build time.
+- **The author link**: `web/components/LinkedIn.tsx`, in the hero, the
+  footer of every page, and every article byline. Monochrome, no brand
+  colour.
+- **`scripts/check_export.py`**: the static-export contract, run in CI
+  after the frontend build (25+ pages, twelve articles, three or more
+  sources each, the author link on every page, the nested run routes).
+
+### Changed
+
+- **Routing is path-based, not hash-based.** `/runs`, `/compare`,
+  `/method`, `/format`, `/matrix`, `/harness`, `/families`,
+  `/run/<id>`, `/blog`, `/blog/<slug>` are real routes with
+  `trailingSlash: true`, so each is a directory with an `index.html` and
+  the export is served identically by Vercel and by `tieout serve`.
+  `/run/...` is a catch-all: run ids are paths (`demo-stability/a`) and
+  a single segment would have encoded the slash and made the stability
+  pair unreachable.
+- The nav is a single component (`web/components/Nav.tsx`) driven by
+  `usePathname`, rendered from the root layout; the footer is part of
+  the layout, so it is on every page.
+- `docs/*.md` are rendered at build time instead of fetched from
+  `/api/docs` on navigation (same files, no round trip).
+
 ## [0.3.0] - 2026-10-29
 
 ### Added

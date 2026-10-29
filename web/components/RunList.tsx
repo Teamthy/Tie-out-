@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { getRuns } from "../lib/api";
 import type { RunSummary } from "../lib/types";
 import { VerdictBadge } from "./Badge";
+import { runPath } from "../lib/links";
 
 export function RunList() {
   const [runs, setRuns] = useState<RunSummary[] | null>(null);
@@ -52,7 +53,7 @@ tieout verify runs/demo`}
             {runs.map((r) => (
               <tr key={r.id}>
                 <td className="mono">
-                  <a href={`#/run/${encodeURIComponent(r.id)}`}>{r.id}</a>
+                  <a href={runPath(r.id)}>{r.id}</a>
                 </td>
                 <td className="mono small">{r.agent}</td>
                 <td className="mono small">{r.started_at}</td>
@@ -74,7 +75,7 @@ tieout verify runs/demo`}
                   )}
                 </td>
                 <td>
-                  <a className="btn" href={`#/run/${encodeURIComponent(r.id)}`}>
+                  <a className="btn" href={runPath(r.id)}>
                     open
                   </a>
                 </td>

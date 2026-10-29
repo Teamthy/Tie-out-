@@ -1,4 +1,5 @@
-"use client";
+import Link from "next/link";
+import { LinkedInButton } from "./LinkedIn";
 
 const PILLARS: { id: string; name: string; line: string }[] = [
   { id: "P1", name: "verdict event", line: "one record per check: action, policy version, decision, effect reference, in one event, ids pre-assigned before the attempt" },
@@ -25,15 +26,16 @@ export function Landing() {
           team that ran it.
         </p>
         <div className="hero-actions">
-          <a className="btn primary" href="#/runs">
+          <a className="btn primary" href="/runs/">
             open runs
           </a>
-          <a className="btn" href="#/method">
+          <a className="btn" href="/method/">
             read the method
           </a>
-          <a className="btn" href="#/matrix">
-            failure-mode matrix
+          <a className="btn" href="/blog/">
+            read the articles
           </a>
+          <LinkedInButton />
         </div>
       </div>
 
@@ -53,7 +55,7 @@ export function Landing() {
         <p className="doc-p" style={{ marginBottom: 0 }}>
           tieout is built for the fourth layer. It is the public artifact of an independent AI
           security research practice, built to be verified, not trusted, and reviewed cold.{" "}
-          <a href="#/method">Read the full method →</a>
+          <Link href="/method/">Read the full method →</Link>
         </p>
       </div>
 
@@ -144,9 +146,28 @@ tieout diff runs/demo-stability/a runs/demo-stability/b   # stability across two
           </tbody>
         </table>
         <p className="sub" style={{ marginBottom: 0 }}>
-          format spec: <a href="#/format">bundle format v1.1</a> · harness spec:{" "}
-          <a href="#/harness">harness spec</a> · <a href="#/compare">stability diff</a>
+          format spec: <Link href="/format/">bundle format v1.1</Link> · harness spec:{" "}
+          <Link href="/harness/">harness spec</Link> · <Link href="/compare/">stability diff</Link>
         </p>
+      </div>
+
+      <div className="card">
+        <h2>
+          06 · notes and articles <span className="pill">12 pieces, 5 disciplines</span>
+        </h2>
+        <p className="doc-p">
+          Twelve articles on red teaming, security, research engineering, evaluation and software
+          engineering. Every number in them traces to a committed bundle, a committed test, or a
+          cited public artifact, and each piece ends with the list it was verified against.
+        </p>
+        <div className="hero-actions">
+          <a className="btn primary" href="/blog/">
+            the blog
+          </a>
+          <a className="btn" href="/blog/verify-dont-trust/">
+            start with verify
+          </a>
+        </div>
       </div>
     </section>
   );
