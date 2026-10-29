@@ -24,7 +24,7 @@ export function FamiliesPage() {
   return (
     <section>
       <p>
-        <a className="back" href="#/">
+        <a className="back" href="/">
           ← home
         </a>
       </p>
@@ -53,7 +53,7 @@ export function FamiliesPage() {
           {f.family_id === "F2" && (
             <p className="sub">
               the failure-mode matrix,{" "}
-              <a href="#/matrix">docs/failure-mode-matrix.md</a>, made executable: rows E (evidence
+              <a href="/matrix/">docs/failure-mode-matrix.md</a>, made executable: rows E (evidence
               at decision time), P (persistence), R (recovery), V (independent verification) as
               checks. each check carries one scenario where the sample fixture makes the designed
               break and one where it makes the documented hold; for a live agent the same prompts

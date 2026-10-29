@@ -372,7 +372,7 @@ export function RunDetail({ id }: { id: string }) {
   return (
     <section>
       <p>
-        <a className="back" href="#/">
+        <a className="back" href="/runs/">
           ← all runs
         </a>
       </p>
@@ -387,7 +387,7 @@ export function RunDetail({ id }: { id: string }) {
       <p className="sub mono">
         {p.agent} · suite {p.suite} · {p.started_at} → {p.finished_at} · {bundle.events.length} events,{" "}
         {bundle.controls.length} controls · {bundle.manifest.bundle_format} ·{" "}
-        <a href="#/compare">compare with another run →</a>
+        <a href="/compare/">compare with another run →</a>
       </p>
 
       <VerifyPanel id={id} />

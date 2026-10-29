@@ -82,12 +82,33 @@ Two invariants that catch people:
 
 ## Adding a page
 
-Pages are hash routes in `web/app/page.tsx` (`#/runs`, `#/run/<id>`,
-`#/method`, `#/format`, `#/matrix`, `#/harness`, `#/families`). New
-pages: add a component in `web/components/`, a route in `page.tsx`,
-and a nav entry if it belongs in the top bar. Keep the monochrome
-system: black, white, gray levels, no color; verdicts read as
-typography.
+Pages are real routes in `web/app/` (`/runs`, `/run/<id>`,
+`/compare`, `/blog`, `/method`, `/format`, `/matrix`, `/harness`,
+`/families`), prerendered by the static export (`trailingSlash: true`,
+so every route is a directory with an `index.html`). New pages: add a
+`page.tsx`, a component in `web/components/`, and a nav entry in
+`web/components/Nav.tsx` if it belongs in the top bar. Run ids are
+paths, so `/run/...` is a catch-all and the export nests exactly like
+the runs directory.
+
+Keep the monochrome system: black, white, gray levels, no color;
+verdicts read as typography. The author link
+(`web/components/LinkedIn.tsx`) appears in the hero, the footer of
+every page, and every article byline.
+
+## Adding an article
+
+Articles are markdown in `web/content/blog/<slug>.md` plus an entry in
+`web/lib/posts.ts` (title, dek, discipline, order, date, sources). They
+are read at build time, so a post is a static page like any other.
+
+The verification rule is not negotiable: every number in an article
+must trace to a committed bundle or manifest field, a committed test or
+`tieout selftest` output, or a cited public artifact. The `sources`
+array is rendered as the "verified against" block at the end of the
+piece; if a claim has no source, either find one or drop the claim.
+`python scripts/check_export.py web/out` enforces the mechanical part
+(twelve articles, at least three sources each, a link on every page).
 
 ## Style
 

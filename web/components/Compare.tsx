@@ -74,7 +74,7 @@ export function Compare() {
   return (
     <section>
       <p>
-        <a className="back" href="#/">
+        <a className="back" href="/">
           ← home
         </a>
       </p>

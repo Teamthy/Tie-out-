@@ -155,19 +155,35 @@ tieout serve --port 8000 --runs-dir runs
 
 One command serves the API and the built UI. The UI (Next.js, static
 export, black and white on purpose) is a viewer for tieout's own
-evidence bundles, not an LLM observability dashboard. Pages:
+evidence bundles, not an LLM observability dashboard. Every page is
+prerendered at build time; the only request-time work on the site is
+the verify button.
 
 | route | page |
 |-------|------|
-| `#/` | landing: the gap, the six pillars, capabilities, verify-it-yourself, the artifact |
-| `#/runs` | the run list: verdicts, controls, gaps per bundle |
-| `#/run/<id>` | the full bundle: verdict timeline with the hash chain, the metric with its exact CI, controls, gaps, judge audit, provenance with the environment packages, and a stranger verify you can trigger from the page |
-| `#/compare` | cross-run stability: pick two runs, aligned table, verdict flips inverted, transcript drift counted, rates with exact CIs |
-| `#/method` | the method note |
-| `#/format` | the bundle format v1.1 spec |
-| `#/matrix` | the failure-mode matrix |
-| `#/harness` | the harness spec |
-| `#/families` | check families + the OWASP Agentic crosswalk |
+| `/` | landing: the gap, the six pillars, capabilities, verify-it-yourself, the artifact |
+| `/runs` | the run list: verdicts, controls, gaps per bundle |
+| `/run/<id>` | the full bundle: verdict timeline with the hash chain, the metric with its exact CI, controls, gaps, judge audit, provenance with the environment packages, and a stranger verify you can trigger from the page (nested ids work: `/run/demo-stability/a`) |
+| `/compare` | cross-run stability: pick two runs, aligned table, verdict flips inverted, transcript drift counted, rates with exact CIs |
+| `/blog` | twelve articles across red teaming, security, research engineering, evaluation and software engineering, each ending with the artifacts it was verified against |
+| `/blog/<slug>` | one article: byline, body, "verified against" sources, prev/next |
+| `/method` | the method note |
+| `/format` | the bundle format v1.1 spec |
+| `/matrix` | the failure-mode matrix |
+| `/harness` | the harness spec |
+| `/families` | check families + the OWASP Agentic crosswalk |
+
+The docs are single-sourced: `/method`, `/format`, `/matrix` and
+`/harness` render `docs/*.md` at build time, the same files the CLI
+ships and `/api/docs` serves. The blog is markdown in
+`web/content/blog/` with metadata in `web/lib/posts.ts`; adding a piece
+is a file plus an entry, and `python scripts/check_export.py web/out`
+holds the mechanical contract (25+ pages, twelve articles, at least
+three verified-against sources each, the author link on every page).
+
+Built by Timothy Olusanya ([LinkedIn](https://www.linkedin.com/in/olusanya-timothy)):
+the author link sits in the hero, the footer of every page, and every
+article byline.
 
 ## Deploy
 
@@ -255,12 +271,16 @@ tieout/            the package
   diff.py          cross-run stability diff (align by pre-assigned id)
   server.py        FastAPI: bundle browser + verify + diff
 web/               the UI (Next.js, static export, black and white)
+  app/             one directory per route; /run/[...id] is a catch-all (ids are paths)
+  content/blog/    the twelve articles, markdown, read at build time
+  lib/posts.ts     the article registry: title, dek, discipline, date, sources
 docs/              format spec, harness spec, method note, matrix
 runs/              reproducible runs (demo, demo-f2, demo-stability are committed)
 tests/             pytest: verify/tamper/selftest/CLI/server/stats/diff/F2/v1.1/deploy
 main.py            ASGI entry for serverless hosts (the same app, no uvicorn)
 vercel.json        two services: web (Next.js) + api (FastAPI); /api/* to api
-Makefile           install / lint / test / selftest / demo / verify / ui / serve
+scripts/           check_export.py: the static-export contract (pages, articles, links)
+Makefile           install / lint / test / selftest / demo / verify / ui / site / serve
 SECURITY.md        how to verify the repo's claims, how to report
 CONTRIBUTING.md    the evidence doctrine, how to add families and pages
 CHANGELOG.md       keep-a-changelog
