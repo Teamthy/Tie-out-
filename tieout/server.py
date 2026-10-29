@@ -23,10 +23,32 @@ def create_app(runs_dir: str | Path) -> FastAPI:
     runs_dir = Path(runs_dir)
     app = FastAPI(title="tieout", version=__version__)
 
-    def _load(run_id: str):
-        d = runs_dir / run_id
+    def _run_dir(run_id: str):
+        """Resolve a run id to its directory.
+
+        A run id is a path relative to the runs dir: committed evidence
+        is often nested (`demo-stability/a`), so the id carries a slash
+        and the routes use the `path` converter. The same check keeps
+        `..` from walking out of the runs dir.
+        """
+        root = runs_dir.resolve()
+        d = (root / run_id).resolve()
+        if d != root and root not in d.parents:
+            raise HTTPException(status_code=404, detail=f"run {run_id!r} not found")
         if not d.is_dir() or not (d / "bundle.jsonl").exists():
             raise HTTPException(status_code=404, detail=f"run {run_id!r} not found")
+        return d
+
+    def _run_ids() -> list[str]:
+        root = runs_dir.resolve()
+        if not root.is_dir():
+            return []
+        return sorted(
+            p.parent.relative_to(root).as_posix() for p in root.rglob("bundle.jsonl")
+        )
+
+    def _load(run_id: str):
+        d = _run_dir(run_id)
         lines = [
             json.loads(line)
             for line in (d / "bundle.jsonl").read_text(encoding="utf-8").splitlines()
@@ -50,40 +72,37 @@ def create_app(runs_dir: str | Path) -> FastAPI:
     @app.get("/api/runs")
     def runs() -> list[dict]:
         out = []
-        if runs_dir.exists():
-            for d in sorted(runs_dir.iterdir()):
-                if not (d / "bundle.jsonl").exists():
-                    continue
-                _, manifest, events, controls, _audit, gaps = _load(d.name)
-                verdicts: dict[str, int] = {}
-                for e in events:
-                    verdicts[e["decision"]] = verdicts.get(e["decision"], 0) + 1
-                stats = manifest.get("statistics") or []
-                out.append(
-                    {
-                        "id": d.name,
-                        "run_id": manifest.get("run_id"),
-                        "agent": manifest.get("provenance", {}).get("agent"),
-                        "suite": manifest.get("provenance", {}).get("suite"),
-                        "started_at": manifest.get("provenance", {}).get("started_at"),
-                        "bundle_format": manifest.get("bundle_format"),
-                        "seed": manifest.get("provenance", {}).get("seed", 0),
-                        "events": len(events),
-                        "controls": len(controls),
-                        "verdicts": verdicts,
-                        "controls_fp": manifest.get("controls_fp", 0),
-                        "controls_fn": manifest.get("controls_fn", 0),
-                        "gaps": len(gaps),
-                        "statistics": stats,
-                    }
-                )
+        for run_id in _run_ids():
+            _, manifest, events, controls, _audit, gaps = _load(run_id)
+            verdicts: dict[str, int] = {}
+            for e in events:
+                verdicts[e["decision"]] = verdicts.get(e["decision"], 0) + 1
+            stats = manifest.get("statistics") or []
+            out.append(
+                {
+                    "id": run_id,
+                    "run_id": manifest.get("run_id"),
+                    "agent": manifest.get("provenance", {}).get("agent"),
+                    "suite": manifest.get("provenance", {}).get("suite"),
+                    "started_at": manifest.get("provenance", {}).get("started_at"),
+                    "bundle_format": manifest.get("bundle_format"),
+                    "seed": manifest.get("provenance", {}).get("seed", 0),
+                    "events": len(events),
+                    "controls": len(controls),
+                    "verdicts": verdicts,
+                    "controls_fp": manifest.get("controls_fp", 0),
+                    "controls_fn": manifest.get("controls_fn", 0),
+                    "gaps": len(gaps),
+                    "statistics": stats,
+                }
+            )
         return out
 
-    @app.get("/api/runs/{run_id}")
+    @app.get("/api/runs/{run_id:path}")
     def run_detail(run_id: str) -> dict:
         d, manifest, events, controls, audit, gaps = _load(run_id)
         return {
-            "id": d.name,
+            "id": run_id,
             "manifest": manifest,
             "events": events,
             "controls": controls,
@@ -91,7 +110,7 @@ def create_app(runs_dir: str | Path) -> FastAPI:
             "gaps": gaps,
         }
 
-    @app.post("/api/runs/{run_id}/verify")
+    @app.post("/api/runs/{run_id:path}/verify")
     def verify_run(run_id: str) -> dict:
         d, manifest, events, controls, _audit, _gaps = _load(run_id)
         fam_id = events[0].get("family") if events else None
@@ -103,7 +122,15 @@ def create_app(runs_dir: str | Path) -> FastAPI:
             "verdict": res.verdict,
             "ok": res.ok,
         }
-        (d / "verify_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+        try:
+            (d / "verify_report.json").write_text(
+                json.dumps(report, indent=2), encoding="utf-8"
+            )
+        except OSError:
+            # Read-only bundle (serverless): the report is the response,
+            # the file is only a local convenience. Never fail the verify
+            # because the host cannot persist it.
+            pass
         return report
 
     @app.get("/api/families")
@@ -150,9 +177,7 @@ def create_app(runs_dir: str | Path) -> FastAPI:
     @app.get("/api/diff")
     def diff(a: str, b: str) -> dict:
         for rid in (a, b):
-            d = runs_dir / rid
-            if not d.is_dir() or not (d / "bundle.jsonl").exists():
-                raise HTTPException(status_code=404, detail=f"run {rid!r} not found")
+            _run_dir(rid)
         try:
             return diff_bundles(runs_dir / a, runs_dir / b)
         except DiffError as e:

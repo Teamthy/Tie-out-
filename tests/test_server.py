@@ -100,3 +100,32 @@ def test_docs_endpoint(tmp_path):
     assert docs["matrix"].startswith("# Failure-mode matrix")
     assert "T0" in docs["matrix"]
     assert docs["harness"].startswith("# Harness spec")
+
+
+def test_nested_run_ids_are_browsable(tmp_path):
+    """Committed evidence is nested (`demo-stability/a`): the list, the
+    detail page, verify and diff must all take the id as it is."""
+    runs = tmp_path / "runs"
+    run_suite(get_family("F1"), SampleOrderBot(), out_dir=runs / "stability" / "a")
+    run_suite(get_family("F1"), SampleOrderBot(), out_dir=runs / "stability" / "b")
+    c = TestClient(create_app(runs))
+
+    ids = [r["id"] for r in c.get("/api/runs").json()]
+    assert ids == ["stability/a", "stability/b"]
+
+    det = c.get("/api/runs/stability/a")
+    assert det.status_code == 200
+    assert det.json()["id"] == "stability/a"
+    assert len(det.json()["events"]) == 14
+
+    assert c.post("/api/runs/stability/a/verify").status_code == 200
+
+    d = c.get("/api/diff", params={"a": "stability/a", "b": "stability/b"})
+    assert d.status_code == 200
+    assert d.json()["stability"] == 1.0
+
+
+def test_run_ids_cannot_escape_the_runs_dir(tmp_path):
+    c = make_client(tmp_path)
+    for path in ("/api/runs/..%2F..%2Fetc", "/api/runs/%2E%2E%2F%2E%2E%2Fetc"):
+        assert c.get(path).status_code == 404

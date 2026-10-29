@@ -13,6 +13,16 @@ function ci(x: [number, number]): string {
   return `[${pct(x[0])}, ${pct(x[1])}]`;
 }
 
+/** The first two runs that cover the same suite, in list order. */
+function sameSuitePair(runs: RunSummary[]): [RunSummary, RunSummary] | null {
+  for (let i = 0; i < runs.length; i += 1) {
+    for (let j = i + 1; j < runs.length; j += 1) {
+      if (runs[i].suite === runs[j].suite) return [runs[i], runs[j]];
+    }
+  }
+  return null;
+}
+
 export function Compare() {
   const [runs, setRuns] = useState<RunSummary[] | null>(null);
   const [a, setA] = useState<string>("");
@@ -26,8 +36,11 @@ export function Compare() {
       .then((r) => {
         setRuns(r);
         if (r.length >= 2) {
-          setA(r[0].id);
-          setB(r[1].id);
+          // default to a pair the diff can align: two runs of the same
+          // suite. two different families are a 400, not a diff.
+          const pair = sameSuitePair(r);
+          setA(pair ? pair[0].id : r[0].id);
+          setB(pair ? pair[1].id : r[1].id);
         } else if (r.length === 1) {
           setA(r[0].id);
         }
