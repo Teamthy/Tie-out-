@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Markdown } from "../../../components/Markdown";
+
+import { Markdown, outline } from "../../../components/Markdown";
 import { Byline } from "../../../components/Byline";
+import { Icon } from "../../../components/Icon";
 import { LinkedInButton, AUTHOR } from "../../../components/LinkedIn";
 import { POSTS, getPost, formatDate } from "../../../lib/posts";
 import { readPost } from "../../../lib/post-content";
@@ -48,94 +50,118 @@ export default function Article({ params }: { params: { slug: string } }) {
   }
 
   const body = readPost(post.slug);
+  const toc = outline(body);
   const ordered = [...POSTS].sort((a, b) => a.order - b.order);
   const idx = ordered.findIndex((p) => p.slug === post.slug);
   const prev = idx > 0 ? ordered[idx - 1] : null;
   const next = idx >= 0 && idx < ordered.length - 1 ? ordered[idx + 1] : null;
 
   return (
-    <section>
-      <p>
-        <Link className="back" href="/blog/">
-          ← all articles
-        </Link>
-      </p>
+    <div className="stack">
+      <nav className="crumbs mono small" aria-label="breadcrumb">
+        <Link href="/blog/">notes</Link>
+        <span aria-hidden="true">/</span>
+        <span>{post.discipline}</span>
+        <span aria-hidden="true">/</span>
+        <span className="dim">
+          {String(post.order).padStart(2, "0")} of {String(POSTS.length).padStart(2, "0")}
+        </span>
+      </nav>
 
-      <article>
-        <header className="article-head">
-          <p className="article-kicker mono">
-            <span className="pill">{post.discipline}</span>{" "}
-            <span className="article-number">
-              {String(post.order).padStart(2, "0")} / {String(POSTS.length).padStart(2, "0")}
-            </span>
-          </p>
-          <h1 className="article-title">{post.title}</h1>
-          <p className="article-dek">{post.dek}</p>
-          <Byline date={formatDate(post.date)} minutes={post.minutes} discipline={post.discipline} />
-        </header>
+      <header className="article-head">
+        <p className="eyebrow">{post.discipline}</p>
+        <h1 className="article-title">{post.title}</h1>
+        <p className="article-dek">{post.dek}</p>
+        <Byline date={formatDate(post.date)} minutes={post.minutes} discipline={post.discipline} />
+      </header>
 
-        <div className="card article-body">
+      <div className="article-layout">
+        <article className="article-body">
           <Markdown source={body} />
-        </div>
 
-        <div className="card verified">
-          <h2>
-            verified against <span className="pill">{post.sources.length} sources</span>
-          </h2>
-          <ul className="verified-list">
-            {post.sources.map((s) => (
-              <li key={s} className="mono small">
-                {s}
+          <aside className="verified">
+            <div className="verified-head">
+              <Icon name="check" size={16} />
+              <h2 className="section-title">the receipts</h2>
+              <span className="section-note">{post.sources.length} sources</span>
+            </div>
+            <p className="verified-intro">
+              The line above the panel is the article&apos;s own claim. These are the artifacts
+              behind it — every one of them is in this repository, at the commit that published
+              the piece.
+            </p>
+            <ul className="verified-list">
+              {post.sources.map((s) => (
+                <li key={s} className="mono small">
+                  {s}
+                </li>
+              ))}
+            </ul>
+            <div className="verified-foot">
+              <code className="verified-cmd">uv run tieout verify runs/demo</code>
+              <Link className="inline-link" href="/runs/">
+                browse the bundles
+              </Link>
+            </div>
+          </aside>
+
+          <aside className="author-card">
+            <span className="author-avatar" aria-hidden="true">TO</span>
+            <div>
+              <p className="author-name">{AUTHOR}</p>
+              <p className="author-line">
+                Builds tieout as the public artifact of an independent AI security research
+                practice: evidence-grade agent evaluation, red team runs, and records a stranger
+                can re-derive.
+              </p>
+              <div className="author-actions">
+                <LinkedInButton label="linkedin" />
+                <Link className="btn btn-ghost" href="/blog/">
+                  more notes
+                </Link>
+              </div>
+            </div>
+          </aside>
+        </article>
+
+        <aside className="toc" aria-label="on this page">
+          <p className="toc-head mono">on this page</p>
+          <ol className="toc-list">
+            {toc.map((h) => (
+              <li key={h.id}>
+                <a href={`#${h.id}`}>{h.text}</a>
               </li>
             ))}
-          </ul>
-          <p className="sub" style={{ marginBottom: 0 }}>
-            each entry is reproducible from this repository:{" "}
-            <Link href="/runs/">browse the bundles</Link> or run the commands named in the
-            article. questions, corrections and disagreements are welcome on{" "}
-            <a href="https://www.linkedin.com/in/olusanya-timothy" target="_blank" rel="noreferrer">
-              LinkedIn
-            </a>
-            .
-          </p>
-        </div>
-      </article>
+          </ol>
+          <div className="toc-foot">
+            <p className="mono small dim">
+              {formatDate(post.date)} · {post.minutes} min read
+            </p>
+            <Link className="toc-top mono small" href="#main">
+              back to top <Icon name="arrow" size={12} />
+            </Link>
+          </div>
+        </aside>
+      </div>
 
-      <div className="article-nav">
+      <nav className="article-nav" aria-label="articles">
         {prev ? (
-          <a className="article-nav-link" href={`/blog/${prev.slug}/`}>
-            <span className="mono small">← {String(prev.order).padStart(2, "0")}</span>
-            <span>{prev.title}</span>
-          </a>
+          <Link className="article-nav-link" href={`/blog/${prev.slug}/`}>
+            <span className="mono small dim">← {String(prev.order).padStart(2, "0")}</span>
+            <span className="article-nav-title">{prev.title}</span>
+          </Link>
         ) : (
           <span />
         )}
         {next ? (
-          <a className="article-nav-link right" href={`/blog/${next.slug}/`}>
-            <span className="mono small">{String(next.order).padStart(2, "0")} →</span>
-            <span>{next.title}</span>
-          </a>
+          <Link className="article-nav-link right" href={`/blog/${next.slug}/`}>
+            <span className="mono small dim">{String(next.order).padStart(2, "0")} →</span>
+            <span className="article-nav-title">{next.title}</span>
+          </Link>
         ) : (
           <span />
         )}
-      </div>
-
-      <div className="card">
-        <h2>
-          the author <span className="pill">independent practice</span>
-        </h2>
-        <p className="doc-p">
-          {AUTHOR} builds tieout as the public artifact of an independent AI security research
-          practice: evidence-grade agent evaluation, red team runs, and records a stranger can
-          re-derive.
-        </p>
-        <div className="hero-actions" style={{ marginTop: 12 }}>
-          <LinkedInButton label="connect on linkedin" />
-          <Link className="btn" href="/blog/">
-            more articles
-          </Link>
-        </div>
-      </div>
-    </section>
+      </nav>
+    </div>
   );
 }

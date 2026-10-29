@@ -12,6 +12,8 @@ import type {
   VerifyResult,
 } from "../lib/types";
 import { VerdictBadge } from "./Badge";
+import { Icon } from "./Icon";
+import { PageHead } from "./PageHead";
 
 function short(h: string | null | undefined, n = 12): string {
   if (!h) return "—";
@@ -46,6 +48,7 @@ function VerifyPanel({ id }: { id: string }) {
   return (
     <div className="card">
       <h2>
+        <Icon name="shield" size={15} />
         stranger verify <span className="pill">p5</span>
       </h2>
       <p className="sub">
@@ -86,6 +89,7 @@ function MetricTable({
   return (
     <div className="card">
       <h2>
+        <Icon name="matrix" size={15} />
         the metric <span className="pill">t5</span>
       </h2>
       <p className="sub">specific failure, sample size, rate. fired comes from heuristic detectors; the raw is in the chain</p>
@@ -133,6 +137,7 @@ function VerdictTimeline({ events }: { events: VerdictEvent[] }) {
   return (
     <div className="card">
       <h2>
+        <Icon name="runs" size={15} />
         verdict events <span className="pill">p1</span>
       </h2>
       <p className="sub">one record per check: action, policy version, decision, effect reference, in one event, chained</p>
@@ -190,6 +195,7 @@ function ControlsCard({ controls, fp, fn }: { controls: ControlEvent[]; fp: numb
   return (
     <div className="card">
       <h2>
+        <Icon name="check" size={15} />
         negative controls <span className="pill">p3</span>{" "}
         <span className={fp + fn === 0 ? "ok-text" : "bad-text"} style={{ fontSize: 11 }}>
           {fp} fp / {fn} fn
@@ -233,6 +239,7 @@ function GapsCard({ gaps }: { gaps: NamedGap[] }) {
   return (
     <div className="card">
       <h2>
+        <Icon name="hash" size={15} />
         named gaps <span className="pill">p4</span>
       </h2>
       <p className="sub">anything that could not be verified is recorded with reason and scope, never dropped silently</p>
@@ -262,6 +269,7 @@ function JudgeAuditCard({ audit }: { audit: JudgeAudit }) {
   return (
     <div className="card">
       <h2>
+        <Icon name="layers" size={15} />
         judge audit <span className="pill">p6</span>{" "}
         <span className={audit.self_preference_clean ? "ok-text" : "bad-text"} style={{ fontSize: 11 }}>
           self-preference {audit.self_preference_clean ? "clean" : "dirty"}
@@ -294,6 +302,7 @@ function ProvenanceCard({ p, policyVersion }: { p: Provenance; policyVersion?: s
   return (
     <div className="card">
       <h2>
+        <Icon name="link" size={15} />
         provenance <span className="pill">p2</span>
       </h2>
       <dl className="kv">
@@ -370,25 +379,34 @@ export function RunDetail({ id }: { id: string }) {
   for (const e of bundle.events) counts[e.decision] += 1;
 
   return (
-    <section>
-      <p>
-        <a className="back" href="/runs/">
-          ← all runs
-        </a>
-      </p>
-      <div className="run-head">
-        <h1 className="mono">{bundle.id}</h1>
-        <span className="verdict-group">
-          <VerdictBadge v="pass" />
-          <VerdictBadge v="fail" />
-          <VerdictBadge v="undetermined" />
-        </span>
-      </div>
-      <p className="sub mono">
-        {p.agent} · suite {p.suite} · {p.started_at} → {p.finished_at} · {bundle.events.length} events,{" "}
-        {bundle.controls.length} controls · {bundle.manifest.bundle_format} ·{" "}
-        <a href="/compare/">compare with another run →</a>
-      </p>
+    <div className="stack">
+      <PageHead
+        crumb={{ label: "runs", href: "/runs/" }}
+        eyebrow={`${p.suite} · ${bundle.manifest.bundle_format.replace("tieout-bundle/", "format v")}`}
+        title={<span className="mono run-title">{bundle.id}</span>}
+        dek={
+          <>
+            {p.agent} · {bundle.events.length} verdict events and {bundle.controls.length} controls,
+            chained in one file. Everything below is read from the bundle; the verify button is
+            the only thing on this site that calls a service.
+          </>
+        }
+        facts={[
+          { label: "verdicts", value: `${counts.pass} pass · ${counts.fail} fail${counts.undetermined ? ` · ${counts.undetermined} undetermined` : ""}` },
+          { label: "controls", value: `${bundle.controls.length} · fp ${bundle.manifest.controls_fp} · fn ${bundle.manifest.controls_fn}` },
+          { label: "run window", value: `${(p.started_at ?? "").replace("T", " ").replace("Z", "")} → ${(p.finished_at ?? "").replace("T", " ").replace("Z", "")}` },
+        ]}
+        actions={
+          <>
+            <a className="btn btn-ghost" href="/runs/">
+              <Icon name="arrow" size={14} /> all runs
+            </a>
+            <a className="btn btn-ghost" href="/compare/">
+              <Icon name="compare" size={14} /> compare with another run
+            </a>
+          </>
+        }
+      />
 
       <VerifyPanel id={id} />
       <MetricTable metrics={metrics} counts={counts} stats={bundle.manifest.statistics} />
@@ -397,6 +415,6 @@ export function RunDetail({ id }: { id: string }) {
       <GapsCard gaps={bundle.gaps} />
       {bundle.judge_audit && <JudgeAuditCard audit={bundle.judge_audit} />}
       <ProvenanceCard p={p} policyVersion={p.family_policy_versions[bundle.events[0]?.family ?? ""]} />
-    </section>
+    </div>
   );
 }

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { getAsi, getFamiliesDetail } from "../lib/api";
 import type { AsiData, FamilyDetail } from "../lib/types";
+import { Icon } from "./Icon";
+import { PageHead } from "./PageHead";
 
 export function FamiliesPage() {
   const [families, setFamilies] = useState<FamilyDetail[] | null>(null);
@@ -22,19 +24,36 @@ export function FamiliesPage() {
   if (!families || !asi) return <div className="empty">loading families…</div>;
 
   return (
-    <section>
-      <p>
-        <a className="back" href="/">
-          ← home
-        </a>
-      </p>
-      <div className="run-head">
-        <h1>Check families</h1>
-      </div>
-      <p className="sub">
-        a family is content: items + policy version + verdict emitter + negative controls. F1 and
-        F2 are live; F3-F6 are planned against the OWASP Agentic crosswalk.
-      </p>
+    <div className="stack">
+      <PageHead
+        crumb={{ label: "index", href: "/" }}
+        eyebrow="content, not code"
+        title="Check families, and what they map to."
+        dek={
+          <>
+            A family is content: items, a policy version, a verdict emitter and its own negative
+            controls. F1 and F2 are live; F3–F6 are planned against the OWASP Agentic crosswalk.
+          </>
+        }
+        facts={[
+          {
+            label: "families live",
+            value: families.filter((f) => f.family_id === "F1" || f.family_id === "F2").length,
+          },
+          { label: "policies", value: families.map((f) => f.policy_label).join(" · ") },
+          { label: "crosswalk", value: "OWASP agentic" },
+        ]}
+        actions={
+          <>
+            <a className="btn" href="/runs/">
+              <Icon name="runs" size={15} /> the runs
+            </a>
+            <a className="btn btn-ghost" href="/matrix/">
+              <Icon name="matrix" size={15} /> the failure matrix
+            </a>
+          </>
+        }
+      />
 
       {families.map((f) => (
         <div key={f.family_id} className="card">
@@ -149,6 +168,6 @@ export function FamiliesPage() {
           </tbody>
         </table>
       </div>
-    </section>
+    </div>
   );
 }

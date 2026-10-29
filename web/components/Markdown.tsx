@@ -2,11 +2,22 @@ import type { ReactNode } from "react";
 
 /**
  * Minimal markdown renderer for the project's own docs and articles:
- * headings,
- * paragraphs, bullet/numbered lists, tables, fenced code, inline code,
- * bold, links. Deliberately small: the docs are written for this
- * renderer and the CLI.
+ * headings (with anchors), paragraphs, bullet/numbered lists, tables,
+ * fenced code with an optional language label, inline code, bold,
+ * links. Deliberately small: the docs are written for this renderer and
+ * the CLI, and no markdown dependency is shipped to the browser.
  */
+
+/** Stable, readable anchors: "The two equations" -> "the-two-equations". */
+export function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[`*_]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .slice(0, 64);
+}
 
 function inline(text: string, keyBase: string): ReactNode[] {
   const out: ReactNode[] = [];
@@ -20,13 +31,18 @@ function inline(text: string, keyBase: string): ReactNode[] {
     const key = `${keyBase}-${i++}`;
     if (code) out.push(<code key={key} className="md-code">{code.slice(1, -1)}</code>);
     else if (bold) out.push(<strong key={key}>{bold.slice(2, -2)}</strong>);
-    else if (linkText && linkHref)
+    else if (linkText && linkHref) {
+      const internal = linkHref.startsWith("/") || linkHref.startsWith("#");
       out.push(
-        <a key={key} href={linkHref} target="_blank" rel="noreferrer">
+        <a
+          key={key}
+          href={linkHref}
+          {...(internal ? {} : { target: "_blank", rel: "noreferrer noopener" })}
+        >
           {linkText}
         </a>
       );
-    else out.push(full);
+    } else out.push(full);
     last = m.index + full.length;
   }
   if (last < text.length) out.push(text.slice(last));
@@ -42,7 +58,7 @@ type Block =
   | { kind: "h1" | "h2" | "h3"; text: string }
   | { kind: "p"; text: string }
   | { kind: "ul" | "ol"; items: string[] }
-  | { kind: "code"; text: string }
+  | { kind: "code"; text: string; lang: string }
   | { kind: "table"; table: Table };
 
 function parse(md: string): Block[] {
@@ -56,6 +72,7 @@ function parse(md: string): Block[] {
       continue;
     }
     if (line.startsWith("```")) {
+      const lang = line.slice(3).trim();
       const buf: string[] = [];
       i++;
       while (i < lines.length && !lines[i].startsWith("```")) {
@@ -63,7 +80,7 @@ function parse(md: string): Block[] {
         i++;
       }
       i++;
-      blocks.push({ kind: "code", text: buf.join("\n") });
+      blocks.push({ kind: "code", text: buf.join("\n"), lang });
       continue;
     }
     if (line.startsWith("|")) {
@@ -126,6 +143,13 @@ function parse(md: string): Block[] {
   return blocks;
 }
 
+/** The h2 outline, for a table of contents built at render time. */
+export function outline(source: string): { id: string; text: string }[] {
+  return parse(source)
+    .filter((b): b is { kind: "h2"; text: string } => b.kind === "h2")
+    .map((b) => ({ id: slugify(b.text), text: b.text.replace(/`/g, "") }));
+}
+
 export function Markdown({ source }: { source: string }) {
   const blocks = parse(source);
   return (
@@ -135,27 +159,31 @@ export function Markdown({ source }: { source: string }) {
         switch (b.kind) {
           case "h1":
             return (
-              <h1 key={key} className="doc-h1">
+              <h1 key={key} id={slugify(b.text)} className="doc-h1">
                 {inline(b.text, key)}
               </h1>
             );
           case "h2":
             return (
-              <h2 key={key} className="doc-h2">
-                {inline(b.text, key)}
+              <h2 key={key} id={slugify(b.text)} className="doc-h2">
+                <a className="doc-anchor" href={`#${slugify(b.text)}`} aria-hidden="true">
+                  #
+                </a>
+                <span>{inline(b.text, key)}</span>
               </h2>
             );
           case "h3":
             return (
-              <h3 key={key} className="doc-h3">
+              <h3 key={key} id={slugify(b.text)} className="doc-h3">
                 {inline(b.text, key)}
               </h3>
             );
           case "code":
             return (
-              <pre key={key} className="code">
-                {b.text}
-              </pre>
+              <div key={key} className="code-block">
+                {b.lang ? <span className="code-lang mono">{b.lang}</span> : null}
+                <pre className="code">{b.text}</pre>
+              </div>
             );
           case "table":
             return (
