@@ -154,6 +154,12 @@ hr {
   margin: var(--s4) 0;
 }
 
+.doc-hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: var(--s4) 0 var(--s3);
+}
+
 /* eyebrows and section heads ------------------------------------ */
 
 .eyebrow {

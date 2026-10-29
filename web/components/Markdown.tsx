@@ -56,6 +56,7 @@ interface Table {
 
 type Block =
   | { kind: "h1" | "h2" | "h3"; text: string }
+  | { kind: "hr" }
   | { kind: "p"; text: string }
   | { kind: "ul" | "ol"; items: string[] }
   | { kind: "code"; text: string; lang: string }
@@ -98,6 +99,11 @@ function parse(md: string): Block[] {
           kind: "table",
           table: { header: tbl[0], rows: tbl.slice(1) },
         });
+      continue;
+    }
+    if (/^-{3,}$/.test(line.trim()) || /^\*{3,}$/.test(line.trim())) {
+      blocks.push({ kind: "hr" });
+      i++;
       continue;
     }
     const h = line.match(/^(#{1,3})\s+(.*)$/);
@@ -157,6 +163,8 @@ export function Markdown({ source }: { source: string }) {
       {blocks.map((b, i) => {
         const key = `b${i}`;
         switch (b.kind) {
+          case "hr":
+            return <hr key={key} className="doc-hr" />;
           case "h1":
             return (
               <h1 key={key} id={slugify(b.text)} className="doc-h1">
