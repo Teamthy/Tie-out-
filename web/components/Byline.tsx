@@ -1,24 +1,30 @@
-import { AUTHOR, LinkedInButton } from "./LinkedIn";
+import { LinkedInButton, AUTHOR } from "./LinkedIn";
 
-/** The byline under every article: who wrote it, when, and where to find them. */
+/**
+ * Author · linkedin · discipline · date · minutes, as one hairline row.
+ * Used under every article title and on the article's closing card.
+ */
 export function Byline({
+  discipline,
   date,
   minutes,
-  discipline,
 }: {
+  discipline: string;
   date: string;
   minutes: number;
-  discipline: string;
 }) {
   return (
     <div className="byline">
+      <span className="byline-avatar" aria-hidden="true">TO</span>
       <span className="byline-author">{AUTHOR}</span>
-      <span className="byline-sep">·</span>
+      <span className="byline-sep" aria-hidden="true">·</span>
       <LinkedInButton variant="link" label="linkedin" />
-      <span className="byline-sep">·</span>
-      <span>
-        {discipline} · {date} · {minutes} min
-      </span>
+      <span className="byline-sep" aria-hidden="true">·</span>
+      <span className="byline-meta">{discipline}</span>
+      <span className="byline-sep" aria-hidden="true">·</span>
+      <span className="byline-meta">{date}</span>
+      <span className="byline-sep" aria-hidden="true">·</span>
+      <span className="byline-meta">{minutes} min</span>
     </div>
   );
 }

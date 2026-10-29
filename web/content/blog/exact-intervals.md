@@ -1,77 +1,167 @@
-Thirteen successes in fourteen trials is 92.86%. That sentence is arithmetically true and statistically useless, because the useful question is not what the sample did but what it licenses you to say about the thing you sampled, and at n = 14 the answer is: much less than the percentage suggests.
+Thirteen of fourteen is 0.9286. Most eval reports stop there, or append a Wilson interval, and call it rigor.
 
-The committed bundles store the interval, not just the point estimate. This piece is about why it is computed the way it is, what the numbers look like, and where the whole construction stops being valid.
+At n = 14 the normal approximation those intervals lean on is not just rough, it is the wrong tool. The exact answer for a binomial proportion is the Clopper-Pearson interval, and this harness computes it in the code, from `math.comb`, before the bundle closes.
 
-## The problem with the obvious interval
+For 13 of 14 the exact 95% interval is:
 
-The textbook Wald interval is the point estimate plus or minus 1.96 standard errors:
-
-```
-p_hat ± 1.96 * sqrt(p_hat * (1 - p_hat) / n)
+```text
+[0.661316, 0.998193]
 ```
 
-For 13 of 14, p_hat = 0.928571 and the standard error is sqrt(0.928571 * 0.071429 / 14) = 0.06883. The interval comes out as 0.928571 ± 0.13491, that is [0.79366, 1.06348].
+Read the lower bound. Thirteen of fourteen is not "93 percent, give or take a little". It is consistent with a true pass rate as low as 66%. That is not pessimism. It is what fourteen observations support.
 
-The upper bound is greater than one. A proportion cannot exceed one, so the number has to be clipped to 1.0, and the clipping is not harmless: it hides how little evidence the sample provides about the region near certainty. The Wald interval also collapses at the boundaries (at zero successes its width is zero, which is obviously wrong) and its coverage is poor exactly when n is small and p is near 0 or 1, which is the normal situation in evaluation.
+## The two equations
 
-## The exact interval
+Clopper-Pearson inverts two binomial tails. The lower endpoint `L` solves
 
-The Clopper-Pearson interval inverts the binomial test directly. The lower bound is the p for which the observed count is at the upper tail of the binomial distribution, and the upper bound is the p for which it is at the lower tail; both are found by solving tail equations, not by approximating a normal.
+```text
+P(X >= k | n, p = L) = alpha / 2
+```
 
-tieout's implementation is fifteen lines of bisection on the exact binomial CDF, with the pmf computed from `math.comb`. No scipy, no external statistics dependency, no floating-point approximation of the distribution itself. The tolerance on the bisection is 1e-12.
+and the upper endpoint `U` solves
 
-The results, computed by the shipped code:
+```text
+P(X <= k | n, p = U) = alpha / 2
+```
 
-| successes / n | point estimate | exact 95% interval |
-|---------------|----------------|--------------------|
-| 13 / 14 | 0.928571 | [0.661316, 0.998193] |
-| 4 / 8 | 0.5 | [0.157013, 0.842987] |
-| 27 / 30 | 0.9 | [0.734712, 0.978883] |
-| 0 / 10 | 0.0 | [0.0, 0.308497] |
-| 10 / 10 | 1.0 | [0.691503, 1.0] |
-| 0 / 0 | undefined | [0.0, 1.0] |
+with `alpha = 0.05`. Both tails are monotone in `p`, so each endpoint is the root of a monotone function on [0, 1] — which is exactly the case bisection handles without approximation, and without a statistics dependency.
 
-Look at the first row against the Wald answer. The exact lower bound is 0.661, thirteen points lower than the clipped 0.794. The exact upper bound is 0.998, not 1.0, because fourteen trials cannot establish certainty. The interval is wide, asymmetric, and honest, and the point estimate sits inside it rather than at its centre.
+```python
+def _binom_cdf_le(n, x, p):
+    """P(X <= x) for X ~ Bin(n, p), exact sum."""
+    if x < 0: return 0.0
+    if x >= n: return 1.0
+    return sum(_binom_pmf(n, i, p) for i in range(x + 1))
+```
 
-## Why the asymmetry is the point
+`_binom_pmf` is `math.comb(n, k) * p**k * (1-p)**(n-k)`, with the edge cases at `p <= 0` and `p >= 1` returned exactly rather than computed. `math.comb` is integer arithmetic; the only floating point is in the two powers and the sum. Bisection runs to a tolerance of `1e-12` or 200 iterations, and the result is rounded to six decimals before it is stored. No scipy. No sampling. No approximation.
 
-For a proportion near 1 the exact interval has a long left tail and a short right one. 13/14 is compatible with a true rate of 0.66, and that is not a quirk of the method, it is what fourteen observations can distinguish. Anyone who has shipped a check on twelve items and reported 92% has reported the centre of an interval that starts at two thirds.
+## Reference values, from outside the repository
 
-The complement behaves symmetrically, and there is a test for it: the interval for 13/14 mirrors the interval for 1/14 about 0.5. If those two do not mirror, the implementation has a bug, and the test suite asserts the mirroring to within a thousandth.
+The implementation is pinned to values computed elsewhere. `0 of 10` matches `binom.test(0, 10)` in R, and the rest are checked for internal consistency:
 
-## Reference values, checked against something outside the repository
+| k / n | point estimate | exact 95% interval |
+|---|---|---|
+| 14 / 14 | 1.0000 | [0.768364, 1.000000] |
+| 13 / 14 | 0.9286 | [0.661316, 0.998193] |
+| 11 / 14 | 0.7857 | [0.492024, 0.953421] |
+| 8 / 8 | 1.0000 | [0.630583, 1.000000] |
+| 4 / 8 | 0.5000 | [0.157013, 0.842987] |
+| 0 / 10 | 0.0000 | [0.000000, 0.308497] |
+| 27 / 30 | 0.9000 | [0.734712, 0.978883] |
+| 93 / 100 | 0.9300 | [0.861080, 0.971395] |
+| 0 / 0 | — | [0.000000, 1.000000] |
 
-Self-consistency is not enough for a statistics implementation. Two of the tests are pinned to documented external values:
+The test suite pins the two headline rows — `13/14` to four places and `0/10` to the R value — and adds three structural checks: symmetric under complement, narrower for larger n at the same rate, and always containing the point estimate. Two invalid inputs, `clopper_pearson(3, 4)` and `clopper_pearson(-1, 0)`, raise rather than returning a plausible number.
 
-- 0 successes in 10 trials gives [0, 0.3085], matching R's `binom.test(0, 10)`, the standard Clopper-Pearson reference case.
-- 13 successes in 14 trials gives 0.6613 to 0.9982 to four decimal places, matching the published exact interval for that cell.
+## Why the interval is asymmetric, and why that is the point
 
-The remaining tests are structural: the interval always contains the sample proportion (for 0 < k < n), wider samples give narrower intervals, zero successes have a lower bound of exactly 0.0, all successes have an upper bound of exactly 1.0, an empty sample covers the whole space, and invalid arguments raise instead of returning a plausible number.
+At 13 of 14 the interval is [0.661, 0.998], not something centred on 0.9286. At 14 of 14 it is [0.768, 1.000]; at 0 of 14 it is [0, 0.232]. The interval gets lopsided as the count approaches a boundary, because a binomial cannot overshoot 1.0 and the upper tail has nowhere to go.
 
-## Where the intervals live, and what a reader should do with them
+That asymmetry is information. A run with 14 of 14 passing has a lower bound at 0.77, which is a much weaker statement than "100%". A run with 13 of 14 has a lower bound at 0.66. Neither says the agent is good; both say what fourteen items can support, and the bound that matters is the one a decision would rest on.
 
-Every F1/F2 manifest written at 0.3.0 carries a `statistics` array with one entry per family: `n`, `pass`, `fail`, `undetermined`, `pass_rate`, `ci95`, and the per-check breakdown. For the stability pair that is `n 14, pass 13, fail 1, pass_rate 0.928571, ci95 [0.661316, 0.998193]`; for the F2 matrix it is `n 8, pass 4, pass_rate 0.5, ci95 [0.157013, 0.842987]`.
+Normal-approximation intervals hide this. At the extremes they can even produce bounds outside [0, 1], which is the arithmetic telling you the method is out of its depth.
 
-A reader should use them the way the format intends. Read the interval first, the point estimate second. Compare two runs by comparing intervals, not percentages: two runs at 13/14 and 12/14 have point estimates three points apart and intervals that overlap almost completely, and treating the difference as signal is how eval tables become fiction.
+## Where the interval lives, and what it is attached to
 
-The bundles written before 0.3.0 have `statistics: null`, because the field is additive and v1.1 readers must accept v1.0 bundles. `runs/demo` is exactly that case: a v1.0 bundle, still verifying, with no stored interval. Recomputing its interval is one call, `clopper_pearson(14, 13)`, and the honest way to read the old bundle is to notice the number is missing rather than to assume it agrees.
+The interval is computed before the bundle closes and stored in the manifest, next to the counts it describes:
 
-## The assumptions, stated plainly
+```json
+"statistics": [{
+  "family": "F1", "n": 14, "pass": 13, "fail": 1, "undetermined": 0,
+  "pass_rate": 0.928571,
+  "ci95": [0.661316, 0.998193],
+  "checks": [{"check": "T4", "n": 6, "pass": 5, "fail": 1, "undetermined": 0}]
+}]
+```
 
-Clopper-Pearson assumes the fourteen items are independent Bernoulli trials with a common probability. In an eval, that is a modelling assumption, not a fact. Items within a check family share prompts and detectors; a detector sensitive to one phrasing will be sensitive to the same phrasing in another item. The interval is therefore a statement about the sampling variability of this specific item set, not about the population of all possible attacks, which is not a random sample and has no defined size.
+Three consumers read the same field: the site renders it beside the pass rate, the diff recomputes each run's rate and interval from the events for its comparison table, and a stranger recomputing from the raw events gets the same numbers from the same integer arithmetic. Because the stored interval is written before the bundle is hashed, a later disagreement about it is a disagreement about a line in a chained file — which is a much better argument to have than one about a chart.
 
-The rule for undetermined verdicts in this harness is a decision, not a theorem: an undetermined verdict counts against the pass rate. A check that could not decide is not a hold, and treating it as one would let an unparseable output improve the score. The interval is wider when there are undetermined items, which is the behaviour you want from a number that is supposed to express ignorance.
+The 4-of-8 family carries `[0.157013, 0.842987]`. The site shows that width next to the 0.5, because an interval that wide is a statement about the family: this is a direction, not a measurement.
+
+## One semantic decision: undetermined counts against the rate
+
+There is a choice hidden in one line of code:
+
+```python
+n = len(events)
+lo, hi = clopper_pearson(n, counts["pass"])
+```
+
+The denominator is every item in the run, including any the harness could not decide. An `undetermined` verdict is not a hold: the target errored, or the judge had no rule, and the gap record says which. Counting it as a pass would inflate the rate and narrow the interval at the same time — a more confident number built from less evidence, which is the worst combination available.
+
+Because undetermined items stay in the denominator, they widen the interval, and the record says "less is known here" without needing a sentence. The sentence exists anyway, in the gap record.
+
+## What this changes about small evals
+
+Small evals are where agent evaluation actually happens. Suites are expensive, families grow one check at a time, and eight items is normal rather than pathological.
+
+At that size the honest report has three parts, in this order: the count, the point estimate, the exact interval. If the interval is too wide to act on, the next step is more items, not a different interval. Swapping Clopper-Pearson for Wilson does not create information; it moves the lower bound up in a way that flatters a small sample, which is precisely the failure mode the exact interval exists to prevent.
+
+Two practical consequences show up in this repository's own writing:
+
+- **Four of eight is a direction.** The F2 bundle says so in the same JSON block that reports the 0.5.
+- **Thirteen of fourteen is not a grade.** It is a rate with a floor at two thirds, which is why every article here quotes the interval whenever it quotes the rate.
 
 ## Reproduce it
 
-```
-pip install -e .
-python - <<'PY'
-from tieout.stats import clopper_pearson
-for n, k in [(14, 13), (8, 4), (30, 27), (10, 0), (10, 10), (0, 0)]:
-    print(n, k, clopper_pearson(n, k))
-PY
-pytest tests/test_stats.py -q
+```bash
+python -c "from tieout.stats import clopper_pearson; print(clopper_pearson(14, 13))"
+# (0.661316, 0.998193)
+python -m pytest tests/test_stats.py -q
 ```
 
-The function is pure, the tests are pinned to external reference values, and the numbers in this article are the ones the code prints. If your run disagrees, the interval in the manifest is the one that belongs to the bundle, and this article is the thing that is wrong.
+About sixty lines of Python, one dependency — the standard library — and a number that does not improve because someone wanted it to.
+
+## Why the normal approximation fails here
+
+At 13 of 14 the point estimate is 0.9286 and the standard error is 0.0688. The textbook normal interval is 0.9286 ± 1.96 × 0.0688:
+
+```text
+[0.7937, 1.0635]
+```
+
+The upper bound is greater than one. A pass rate cannot exceed one, so the interval is reporting a probability above certainty — the formula is not slightly off, it is outside its own domain. Wilson's interval repairs that particular embarrassment by clipping, but it is still a large-sample approximation applied to fourteen observations, and it moves the lower bound up in a way that flatters the sample.
+
+Clopper-Pearson does not clip, because it never leaves the parameter space. Its endpoints are solutions of the exact binomial tail equations, so the asymmetry at the boundary comes out of the arithmetic rather than being imposed after it.
+
+## The bisection, in full
+
+```python
+def _bisect(f, lo, hi, target, monotone, tol=1e-12):
+    flo, fhi = f(lo), f(hi)
+    if monotone == "decreasing" and flo < target: return hi
+    if monotone == "increasing" and fhi < target: return hi
+    if monotone == "decreasing" and fhi > target: return lo
+    if monotone == "increasing" and flo > target: return lo
+    for _ in range(200):
+        mid = 0.5 * (lo + hi)
+        fmid = f(mid)
+        if hi - lo < tol:
+            break
+        if monotone == "decreasing":
+            if fmid > target: lo = mid
+            else: hi = mid
+        else:
+            if fmid < target: lo = mid
+            else: hi = mid
+    return 0.5 * (lo + hi)
+```
+
+The first four lines are the degenerate cases: if the target probability is already outside the range the function attains on [0, 1], the endpoint is a boundary rather than an interior root. Without them, `k = 0` and `k = n` would return values computed by bisecting a function that never crosses the target, and the interval would be quietly wrong at exactly the extremes where small evals live.
+
+The loop is ordinary bisection, 200 iterations at most, stopping when the bracket is narrower than a trillionth. For n = 14 the binomial CDF is a small exact sum, so the whole computation is microseconds.
+
+## Where it gets used
+
+Three places, with the same function:
+
+- **the manifest**, when a v1.1 bundle closes: `family_statistics()` counts pass/fail/undetermined and stores `pass_rate` plus `ci95`;
+- **the stability diff**, which computes each side's rate and interval from the events rather than copying the manifest, so the two paths cross-check;
+- **the site**, which renders the stored interval next to the rate and never recomputes it in the browser.
+
+The F2 bundle is the clearest example of the third: `4 of 8`, `ci95 [0.157013, 0.842987]`, rendered as a rate with a visible width. A reader who sees only "50%" has been told a fact about eight items that sounds like a fact about the world. A reader who sees the interval has been told which one it is.
+
+---
+
+**Verified against:** `tieout/stats.py` — `clopper_pearson()`, bisection on the exact binomial CDF via `math.comb`, no SciPy; `tests/test_stats.py`, which pins the documented reference `binom.test(0, 10) -> [0, 0.3085]` and the 13/14 upper bound 0.9982; and the `statistics` blocks of `runs/demo-stability/a` (n 14, pass 13, `[0.661316, 0.998193]`) and `runs/demo-f2` (n 8, pass 4, `[0.157013, 0.842987]`).

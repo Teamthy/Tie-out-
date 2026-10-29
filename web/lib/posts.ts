@@ -40,7 +40,7 @@ export const POSTS: PostMeta[] = [
     discipline: "red teaming",
     order: 1,
     date: "2026-10-30",
-    minutes: 9,
+    minutes: 15,
     sources: [
       "runs/demo/bundle.jsonl (committed): manifest, 14 verdict events, 8 negative controls, judge audit",
       "runs/demo/manifest.sha256 (committed): the bundle file hash",
@@ -55,7 +55,7 @@ export const POSTS: PostMeta[] = [
     discipline: "red teaming",
     order: 2,
     date: "2026-10-30",
-    minutes: 8,
+    minutes: 11,
     sources: [
       "runs/demo-stability/a/bundle.jsonl, /b/bundle.jsonl (committed), seeds 0 and 7",
       "runs/demo-stability/diff_report.json (committed): aligned 14, verdict_flips 0, transcript_drift 10, stability 1.0",
@@ -70,7 +70,7 @@ export const POSTS: PostMeta[] = [
     discipline: "red teaming",
     order: 3,
     date: "2026-10-30",
-    minutes: 9,
+    minutes: 10,
     sources: [
       "runs/demo-f2/bundle.jsonl (committed): 8 events, 8 controls, statistics, packages",
       "docs/failure-mode-matrix.md (the matrix the family executes)",
@@ -85,10 +85,10 @@ export const POSTS: PostMeta[] = [
     discipline: "security",
     order: 4,
     date: "2026-10-30",
-    minutes: 11,
+    minutes: 10,
     sources: [
       "tieout/hashing.py: canonical(), record_hash(), GENESIS",
-      "tieout/bundle/verify.py: the five checks and the six gap codes",
+      "tieout/bundle/verify.py: the five passes, GAP_CODES and the trailing-record check",
       "tieout selftest, points 5 and 6: one-character tamper G-HASH; dropped line G-HASH,G-MISSING",
       "tieout verify runs/demo and runs/demo-f2 (committed output reproduced in CI)",
     ],
@@ -100,7 +100,7 @@ export const POSTS: PostMeta[] = [
     discipline: "security",
     order: 5,
     date: "2026-10-30",
-    minutes: 8,
+    minutes: 9,
     sources: [
       "runs/demo/bundle.jsonl and runs/demo-f2/bundle.jsonl: control records (control_id, kind, expected_fire, fired, record_hash)",
       "manifest fields controls_fp and controls_fn (0 and 0 in both committed runs)",
@@ -130,7 +130,7 @@ export const POSTS: PostMeta[] = [
     discipline: "research engineering",
     order: 7,
     date: "2026-10-30",
-    minutes: 8,
+    minutes: 9,
     sources: [
       "tieout/stats.py: clopper_pearson(), bisection on the exact binomial CDF, math.comb, no scipy",
       "tests/test_stats.py: documented reference binom.test(0,10) -> [0, 0.3085]; 13/14 -> 0.6613..0.9982; complement symmetry",
@@ -145,7 +145,7 @@ export const POSTS: PostMeta[] = [
     discipline: "evaluation",
     order: 8,
     date: "2026-10-30",
-    minutes: 9,
+    minutes: 8,
     sources: [
       "docs/method-note.md: the gap paragraph and the six pillars as doctrine",
       "README.md: the six pillars, all in code",
@@ -160,7 +160,7 @@ export const POSTS: PostMeta[] = [
     discipline: "evaluation",
     order: 9,
     date: "2026-10-30",
-    minutes: 8,
+    minutes: 7,
     sources: [
       "provenance blocks in runs/demo-f2, runs/demo-stability/a and /b (packages, packages_hash, env, seed, dataset_hash)",
       "tieout/provenance.py: WATCHED_PACKAGES and package_snapshot()",
@@ -181,6 +181,7 @@ export const POSTS: PostMeta[] = [
       "runs/demo/bundle.jsonl (tieout-bundle/v1) and runs/demo-f2/bundle.jsonl (tieout-bundle/v1.1)",
       "tieout/hashing.py: the canonical form and the one-record-one-line rule",
       "tieout/bundle/verify.py: which fields verify actually reads",
+      "tests/test_bundle_v11.py: U+2028/U+2029 escaping and the hostile-raw round-trip",
     ],
   },
   {
@@ -190,7 +191,7 @@ export const POSTS: PostMeta[] = [
     discipline: "software engineering",
     order: 11,
     date: "2026-10-30",
-    minutes: 7,
+    minutes: 9,
     sources: [
       "tieout/cli.py: cmd_verify, cmd_selftest, cmd_diff, cmd_gaps, cmd_judge_audit return values",
       ".github/workflows/ci.yml: four verify commands, the selftest, and the stability gate",
@@ -205,14 +206,14 @@ export const POSTS: PostMeta[] = [
     discipline: "software engineering",
     order: 12,
     date: "2026-10-30",
-    minutes: 9,
+    minutes: 8,
     sources: [
       "vercel.json (committed): services web and api, the three rewrites",
       "main.py (committed): the ASGI entry the platform imports",
       ".python-version (3.12) and uv.lock (committed): the deploy's environment pin",
       "tieout/server.py: create_app, best-effort verify_report write, {run_id:path} routes",
       "tests/test_deployment.py: the deployment contract as tests",
-      "Vercel build log, production deployment of 4b04034: two services, ~30s build",
+      "Vercel build record, production deployment dpl_5XZRShJAeeVyAtktdYPruuv7B5pX of 4b04034: two services, 36.6s build",
     ],
   },
 ];

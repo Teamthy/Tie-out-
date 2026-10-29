@@ -1,68 +1,102 @@
-The 2026 tooling landscape is crowded in three layers and empty in the fourth.
+The tooling landscape for agent security is crowded in three layers and empty in the fourth. The full argument lives in `docs/method-note.md`; this is the short version, with the artefacts to back it.
 
-Attacks are commoditized: garak, PyRIT, promptfoo, DeepTeam, Giskard, AgentDojo all generate probes, and most of them do it better than a small independent practice could. Evals are commoditized at the scoring level: OpenAI Evals, DeepEval, Inspect AI, LangSmith, Braintrust, Phoenix all run a dataset through a model and produce a number. Taxonomy is standardized, with the OWASP Top 10 for Agentic Applications, MITRE ATLAS and the NIST AI RMF giving everyone a shared vocabulary for what the failures are called.
+## Three crowded layers
 
-The fourth layer is evidence. Almost nothing in the landscape emits an artifact that a stranger can re-derive.
+**Attacks are commoditized.** garak, PyRIT, promptfoo, DeepTeam, Giskard, AgentDojo. Running an attack suite against an agent is a solved logistics problem: install, point at an endpoint, read the report.
 
-## What "evidence" means here, precisely
+**Scoring is commoditized.** OpenAI Evals, DeepEval, Inspect AI, LangSmith, Braintrust, Phoenix. Turning a run into a number is solved plumbing, and mostly solved by people who were already building observability.
 
-The word is used loosely in security writing, usually to mean "we kept logs". This project means something narrower and more demanding. An artifact is evidence if all six of the following are true, and each has a mechanical test in the format.
+**Taxonomy is standardized.** The OWASP Top 10 for Agentic Applications, MITRE ATLAS, the NIST AI RMF. Naming the threat is no longer the hard part.
 
-| property | the test |
-|----------|----------|
-| the decision is a record, not a sentence | one verdict event per check, with action, policy version, decision and effect reference |
-| provenance is part of the claim | harness, dataset hash, environment, decoding, seed, judge endpoint in the manifest |
-| the grader cannot grade itself | negative controls in both directions, FP and FN reported per run |
-| unverifiable things are named | named gaps with a code, a scope and a reason |
-| a stranger can recompute it | a hash chain, a file hash, and a re-derivation of every verdict from stored raw |
-| the judge is measured | anchor agreement, perturbation flips, disagreement, self-preference, every run |
+Those three layers are real infrastructure. The exception is the fourth.
 
-The list is not a wishlist. Each row corresponds to a field or a check that either exists in the bundle or does not, and the difference is visible in one command.
+**Evidence is empty.** Nobody in the landscape emits an artifact that survives contact with a stranger.
 
-## The self-grade problem
+## The self-grade
 
-The usual pipeline is this: a team builds or buys a red team tool, configures the judge inside that tool, runs it against their own agent, and reports the tool's number. The evaluator and the evaluated share an operator, and the judge lives inside the tool that is being sold as the judge. A green result from that arrangement is not a measurement of the agent; it is a measurement of the tool's opinion of the agent, produced by the same organisation that profits from the opinion.
+The reason the fourth layer is empty is structural rather than accidental. Every tool in the crowded layers uses a judge that lives inside the tool. The evaluator and the evaluated share an operator, the same credentials, the same process, often the same model family.
 
-This is not an accusation of bad faith. It is a structural property, and it is the reason audit artifacts in other fields keep the auditor and the audited separate. When the separation is impossible, the next best thing is a record that lets a third party redo the audit without the auditor.
+A green eval from such a tool is a self-grade: the exam was set, administered, marked, and archived by the same party that took it. That is not an accusation of dishonesty. It is an observation about the shape of the output — nothing in it can distinguish "the agent held" from "the judge thought the agent held", because the judge's own failures are not in the artifact.
 
-Three specific failures follow from the self-grade arrangement, and all three are documented in the research the method note cites:
+The research the method note cites names the failure modes precisely. No judge is uniformly reliable (RAND, 2026). Verdicts flip under reformatting and verbosity. Judge upgrades are not interchangeable. And where raw outputs were not shipped, the numbers cannot be re-audited — which means the argument about them is settled by whoever owns the tool, because only they can look under the hood.
 
-- No judge is uniformly reliable across domains. Agreement scores on one corpus do not transfer to another, so a single number without its judge audit is unfalsifiable.
-- Verdicts flip under reformatting, paraphrase and verbosity. The stability of a verdict is a property of the judge as much as of the target, and it has to be measured rather than assumed.
-- Where raw outputs were not shipped, published numbers cannot be re-audited. This is the terminal one: it does not matter how careful a report was if nobody can recompute it.
+## What the missing layer looks like
 
-## What an evidence layer actually has to ship
+Not a bigger judge. Not a second opinion from another model at the same vendor. A record with three properties:
 
-Four artifacts, in practice, and the format here is one implementation of the list rather than a standard:
+1. **Every verdict is bound to the raw that produced it**, with the policy version and judge identity in the same event.
+2. **The record is chained and hashed** so a stranger can detect tampering without trusting the tool that wrote it.
+3. **The judge's own error rates are measured in the same run**, on inputs the judge did not generate.
 
-A per-decision record. Not a summary row. The action, the policy version being enforced, the decision, and a reference to the effect. One per check, with the id assigned before the attempt so that a missing verdict is nameable.
+This repository's committed bundles are the artifact for that spec, and they are the reason the site links to run pages instead of screenshots. A screenshot is a claim; a bundle is a record.
 
-The raw material. The input and output that the decision was made from, stored verbatim, so the decision can be recomputed by anyone with the detector. A record that stores only the verdict cannot be re-derived; it can only be believed.
+The difference is mechanical and unglamorous: a JSONL file, a hash chain, sixty lines of exact statistics, and a verifier that refuses to call anything a pass it cannot re-derive.
 
-The counter-evidence. Controls, in both directions, and the judge's own error numbers. An artifact that contains only supporting evidence is a press release with hashes.
+## The honest scoreboard
 
-The names of what is missing. This is the one everyone skips. Every real run has things it could not establish: an endpoint that was not resolved, a mapping that was proposed rather than confirmed, a write-ahead tier that is doctrine rather than a component. Naming them with a code and a scope converts a hidden weakness into a reviewable one, and a reviewer who sees a named gap trusts the rest of the document more, not less.
+The method note does not claim the landscape is indifferent to evidence. It claims the artifact is absent. The distinction matters, because it makes the position falsifiable and it names what would change it.
 
-## Where tieout sits, and where it does not
+What would count as the fourth layer being filled, by someone else: a mainstream eval tool shipping the raw response behind every score, a chain over those records that a stranger can walk, the judge's calibration numbers including its error rate on anchors it did not write, and a re-derivation command that runs offline. Any three of those is a report. All four is a record.
 
-tieout is not a probe library. F1 and F2 consume patterns from the public five-tests method and the failure-mode matrix; F3-F6 are planned against the OWASP Agentic crosswalk and are not shipped. If you want attack generation, the tools listed at the top of this piece are better and more numerous.
+Until then, the choice is between a number you can read and a number you can check. Most of the industry has settled on the first, and the settling is so complete that the second is rarely missed.
 
-tieout is not an observability dashboard. The UI renders tieout's own bundles and nothing else; it is a viewer for the record. There is no trace ingestion, no token accounting, no per-request cost graph.
+## The crosswalk, including the rows that are not done
 
-tieout is the artifact. It emits bundles, verifies them, diffs two runs, and prices the judge. The commands are small:
+Naming the threat is the solved layer, so this repository's mapping to the OWASP Agentic list is deliberately modest. `tieout/mappings/asi.py` records six rows, and the status column is the honest part:
 
-```
-tieout demo
-tieout verify runs/demo
-tieout diff runs/demo-stability/a runs/demo-stability/b
-```
+| ASI | title as recorded | family | status |
+|---|---|---|---|
+| ASI01 | Agent goal hijack | F1 (T1, T3) | mapped |
+| ASI02 | tool misuse (planned family F3) | F3 (planned) | planned |
+| ASI03 | identity (planned family F4) | F4 (planned) | planned |
+| ASI06 | memory (planned family F5) | F2 (P, proposed), F5 (planned) | mapped |
+| ASI09 | human trust (planned family F6) | F6 (planned) | planned |
+| ASI10 | Rogue agents | — | recorded |
 
-Everything above the command line is a JSONL file and a one-line sha256. That is deliberate: a reviewer does not need the tool to check the claim, only the file, the check definition, and a few lines of Python.
+Three rows planned, two mapped, one recorded without a family, and an explicit note that the F1 sub-check mapping is *proposed* pending confirmation against the full 2026 list. That is the same discipline the bundles apply to verdicts: anything that could not be verified is recorded, not dropped.
 
-## The honest position on "verified"
+The module docstring says it in one line: "where the spec does not record a title, the row says so."
 
-An evidence layer does not make a claim true. It makes a claim checkable, and it makes the checking cost collapse from "do the whole evaluation again" to "recompute a hash and re-run a detector on a stored string".
+## What this is not
 
-The claims in these articles follow that rule. Every number traces to one of three things: a committed bundle or manifest field, a committed test or selftest output, or a cited public artifact. Where a claim cannot be traced, it is not made as a finding, and the gap is named.
+Not another probe library. garak and promptfoo own attack generation; F-families consume their patterns and turn the results into records.
 
-That constraint is the whole discipline. After it, "trust me" is not a rhetorical posture but a defined failure, and the record can be handed to someone who does not trust you and still be useful.
+Not an LLM observability dashboard. This site renders tieout's own bundles, runs their verify, and diffs two runs. It does not want your traces.
+
+Not a judge model. The harness measures judges; it does not ship one. The judge here is a set of pure functions, and it is audited on every run precisely because it is not smarter than that.
+
+Not a compliance platform. It emits the evidence; platforms map it to their frameworks and decide what to do with it.
+
+## The claim, stated so it can fail
+
+Agent security has spent three years getting very good at generating attacks and very good at scoring them, and comparatively little time building artifacts that survive being handed to someone who does not trust you. The gap is not technical sophistication. It is a missing format, a missing verifier, and a habit of shipping numbers without the raw behind them.
+
+The bet here is that the fourth layer is the one that compounds: the layer where a stranger, years later, with no key and no network, can still say whether the run happened the way it was reported.
+
+## What each crowded layer actually hands you
+
+It is worth being concrete about where each layer stops, because "evidence is missing" is easy to say and hard to check.
+
+**An attack run** hands you a set of prompts, a set of model responses, and a per-probe verdict. If the tool is good, it also hands you a score. What it rarely hands you is a record that binds a verdict to a response with a policy version, in a form someone else can re-check after the tool is upgraded.
+
+**A scoring platform** hands you an experiment, a dataset, a set of scores, and a UI for comparing them across runs. What it does not hand you is the judge's calibration: the platform's scoring function is the thing being trusted, and its error rate on inputs with known answers is not part of the artifact.
+
+**A taxonomy** hands you a shared vocabulary — ASI01, ASI02, and so on — and a mapping exercise. It cannot hand you a record, because a taxonomy has no run in it.
+
+Each layer is genuinely useful and each stops one step short of the artifact an auditor needs. The step is not research; it is bookkeeping done with unusual care.
+
+## What the fourth layer costs
+
+An evidence layer is not free, and pretending otherwise is how projects end up with a hash chain and no users.
+
+It costs **effort at write time**: pre-assigned ids, a canonical serialization, controls written by hand, an audit computed on every run. None of that is hard; all of it has to be decided before the first bundle is written, because retrofitting pre-assignment onto a bundle without ids means the missing items can never be named.
+
+It costs **honesty at read time**: the pass rate comes with an interval, the interval is wide, the judge flips on paraphrase, and the deployment is three services short of a compliance platform. A record that says all that is less flattering than a dashboard that says 94% green, and it is more useful.
+
+It costs **bytes**: a 22 KB JSONL file per run, checked into git, forever. That is the cheapest of the three.
+
+The reason to pay is that the fourth layer is the one that compounds. Attacks get commoditized, scores get commoditized, and taxonomies get standardized — but an artifact that a stranger can re-derive in five years is worth more than any of them, because it is the only one that can still answer a question after everyone who ran it has moved on.
+
+---
+
+**Verified against:** `docs/method-note.md`, where the gap paragraph and the six pillars are stated as doctrine; `README.md`, where the same six pillars appear as code; `docs/harness-spec.md`, which named `G-ASI-MAPPING`, `G-WAL` and `G-ISSUANCE` as standing gaps; and the `gaps` line of `tieout verify` on `runs/demo` and `runs/demo-f2`, which returns `no named gaps` for both — the two statements the argument depends on.

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { getDiff, getRuns } from "../lib/api";
 import type { DiffResult, RunSummary } from "../lib/types";
 import { VerdictBadge } from "./Badge";
+import { Icon } from "./Icon";
+import { PageHead } from "./PageHead";
 
 function pct(x: number): string {
   return (100 * x).toFixed(1) + "%";
@@ -72,22 +74,36 @@ export function Compare() {
   const flipped = diff ? diff.rows.filter((r) => r.flipped) : [];
 
   return (
-    <section>
-      <p>
-        <a className="back" href="/">
-          ← home
-        </a>
-      </p>
-      <div className="run-head">
-        <h1>Cross-run stability</h1>
-      </div>
-      <p className="sub">
-        the same suite run twice is a claim about stability. the diff aligns the two bundles by
-        pre-assigned id and separates two things: <strong>verdict drift</strong> (the decision
-        changed) and <strong>transcript drift</strong> (the words changed, the verdict did not).
-        a healthy deterministic harness shows drift without flips; a live model shows both, and
-        the table says where.
-      </p>
+    <div className="stack">
+      <PageHead
+        crumb={{ label: "index", href: "/" }}
+        eyebrow="cross-run stability"
+        title="The same suite, twice."
+        dek={
+          <>
+            A suite run twice is a claim about stability. This view aligns two bundles by
+            pre-assigned id and separates <strong>verdict drift</strong> (the decision changed)
+            from <strong>transcript drift</strong> (the words changed, the verdict did not). A
+            deterministic harness shows drift without flips; a live model shows both, and the
+            table says where.
+          </>
+        }
+        facts={[
+          { label: "runs available", value: runs.length },
+          { label: "compared", value: `${a || "—"} vs ${b || "—"}` },
+          { label: "alignment key", value: "pre-assigned item id" },
+        ]}
+        actions={
+          <>
+            <a className="btn" href="/runs/">
+              <Icon name="runs" size={15} /> the runs
+            </a>
+            <a className="btn btn-ghost" href="/method/">
+              <Icon name="method" size={15} /> why alignment matters
+            </a>
+          </>
+        }
+      />
 
       <div className="card">
         <div className="compare-pick">
@@ -164,6 +180,7 @@ export function Compare() {
       {diff && (
         <div className="card">
           <h2>
+            <Icon name="matrix" size={15} />
             aligned items <span className="pill">{diff.aligned}</span>{" "}
             {flipped.length > 0 && (
               <span className="bad-text" style={{ fontSize: 11 }}>
@@ -212,6 +229,6 @@ export function Compare() {
           </p>
         </div>
       )}
-    </section>
+    </div>
   );
 }
