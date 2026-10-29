@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tieout"
+version = "0.3.0"
+description = "Evidence-grade agent evaluation harness: every verdict is a bound, re-derivable event. The report is a claim; the bundle is a record."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Timothy Olusanya" },
+]
+keywords = ["ai-evals", "red-teaming", "evidence", "agent-security", "re-derivation"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security",
+    "Topic :: Software Development :: Quality Assurance",
+]
+dependencies = [
+    "pydantic>=2.5",
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+]
+
+[project.optional-dependencies]
+live = ["openai>=1.30"]
+dev = ["pytest>=8", "httpx>=0.27", "ruff>=0.4"]
+
+[project.scripts]
+tieout = "tieout.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Teamthy/Tie-out-"
+
+[tool.setuptools.packages.find]
+include = ["tieout*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

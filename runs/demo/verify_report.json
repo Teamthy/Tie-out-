@@ -1,0 +1,17 @@
+{
+  "lines": [
+    "format : tieout-bundle/v1",
+    "run    : 20261029T211725Z-bdce11",
+    "agent  : sample:deterministic-orderbot",
+    "chain  : 22 records, intact",
+    "file   : sha256 match",
+    "items  : 14/14 pre-assigned ids present",
+    "re-derive: 14/14 verdicts re-derived from stored raw",
+    "controls: 8 re-derived, 0 FP / 0 FN",
+    "gaps   : none",
+    "VERDICT: PASS (re-derivable by a stranger)"
+  ],
+  "gaps": [],
+  "verdict": "PASS",
+  "ok": true
+}
