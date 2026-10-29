@@ -105,42 +105,72 @@ Everything else in the file is described by the first line:
 
 Two of those fields exist only to make absence visible. `expected_item_ids` lets the verifier say *which* item is missing, and `event_count` lets it say *how many* should have been there. Without them, a truncated bundle is a smaller bundle, and the difference between "the run lost an item" and "the suite had thirteen items" would be a question for the author.
 
-## Canonical form, by construction
+## What v1.1 added, field by field
 
-The serialization rule is short enough to state exactly: JSON with sorted keys, compact separators, UTF-8, U+2028 and U+2029 escaped. Every record is written through that one function, and every hash is computed over its output.
+A version bump is a claim that a reader can point at what changed. In this format the diff is two blocks, and both of them are things a reviewer would otherwise have to take on trust.
 
-That matters because a hash chain is only as stable as its serialization. `json.dumps` with default separators, or with `ensure_ascii=True`, or with insertion-ordered keys would produce different bytes for the same logical record on different machines, and a stranger recomputing the hash would get a mismatch that says nothing about tampering. Pinning the form removes an entire class of false accusation.
+**`statistics`**, the per-family summary. In `runs/demo-f2` it reads:
 
-The escape rule is the subtle one. U+2028 is legal inside a JSON string, and `json.dumps` leaves it raw — but `str.splitlines()` treats it as a line break, so a record containing it parses as one line and reads as two. A forged line inside a `raw_output` would therefore become a record to any line-based reader while every hash still verified. The writer escapes both characters, and `tests/test_bundle_v11.py` runs a full suite where every answer contains a fake record, a U+2028, a NUL, an emoji and a `<script>` tag:
+| field | value |
+|---|---|
+| `family` | `F2` |
+| `n` | 8 |
+| `pass` / `fail` / `undetermined` | 4 / 4 / 0 |
+| `pass_rate` | 0.5 |
+| `ci95` | `[0.157013, 0.842987]` |
+| `checks` | `E` 2 (1/1/0), `P` 2 (1/1/0), `R` 2 (1/1/0), `V` 2 (1/1/0) |
 
-```python
-# abridged to the assertions that matter
-def test_hostile_raw_survives_the_chain(tmp_path):
-    run_suite(get_family("F1"), HostileBot(), out_dir=tmp_path / "h")
-    lines = (tmp_path / "h" / "bundle.jsonl").read_text().splitlines()
-    events = [json.loads(ln) for ln in lines[1:] if json.loads(ln).get("type") == "event"]
-    assert len(events) == 14
-    for e in events:
-        assert e["raw_output"] == HOSTILE      # exact round-trip, no mangling
-    v = verify_bundle(tmp_path / "h", family=get_family("F1"))
-    assert v.ok and not v.gaps
+The summary is stored rather than computed at read time, and the interval is the exact one, so a dashboard cannot quietly replace it with a normal approximation. A verifier that disagrees with the block can recompute it and say so; a verifier that agrees has one fewer thing to recompute.
+
+**`provenance.packages`**, the pinned environment, plus a hash over the sorted map:
+
+```text
+fastapi 0.162.0   httpx 0.28.1   pydantic 2.14.2
+tieout 0.3.0      uvicorn 0.54.0
+packages_hash sha256:ad5b76bc56823f5743413584bb26f0640a00d8de3681bb2fd0f38b4cf4e1b5fa
 ```
 
-Fourteen hostile answers, one line each, chain intact, raws byte-identical. If the canonical form were a convention instead of a function, that test would be a hope.
+Both blocks are optional on read and always emitted on write, and the verifier branches on `bundle_format`. That is what lets `runs/demo` — a v1.0 bundle with no `statistics` and no `packages` — pass the same procedure as the v1.1 runs while a v1.1 reader still gets the new fields when they are present.
 
-## Versioning, and the cost of a field
+## Reading a bundle without the tool
 
-v1.1 added two fields and changed no existing one. The rule that makes this safe is written into the format document: both fields are optional on read, always emitted on write, and the verifier branches on the declared marker.
+The format is supposed to survive its own software. Four commands on the committed file, with no `tieout` installed:
 
-The consequence is that the repository holds two generations at once and verifies both. `runs/demo` is a v1.0 bundle from harness 0.2.0: no `statistics`, no `packages`, and a `tieout verify` that still returns PASS with no gaps. `runs/demo-f2` is v1.1 and carries both. A reader can diff the two manifests and see exactly what changed, which is the test of whether a version number is doing its job.
+```bash
+$ wc -l runs/demo/bundle.jsonl
+24
+$ head -1 runs/demo/bundle.jsonl | python3 -m json.tool | head -5
+{
+    "bundle_format": "tieout-bundle/v1",
+    "control_count": 8,
+    "controls_fn": 0,
+$ tail -1 runs/demo/bundle.jsonl | python3 -m json.tool | head -3
+{
+    "anchors_agreement": 1.0,
+    "anchors_total": 14,
+```
 
-A schema that cannot read its own history is not a schema; it is a migration waiting to be scheduled. This one was designed so the migration is a branch in the verifier instead of a rewrite of the artifacts.
+Twenty-four lines, a manifest at the top, a judge audit at the bottom, and between them fourteen events and eight controls. The last *chained* record is not the last line of the file: the audit is a trailing record, hashed but not linked into the chain, because it describes the judge rather than the target.
+
+That leaves the one check a stranger can do with a text editor and a scratchpad. The chain's tail is `cedaef56df0289b2f9056c6e3c344773878753e76e2ab93cf4da050817668af9`, and so is the manifest's `tail_event_hash`. In this bundle the record that produces it is a control:
+
+```text
+type        control
+control_id  F1-CTRL-T4R1-BROKEN
+record_hash cedaef56df0289b2f9056c6e3c344773878753e76e2ab93cf4da050817668af9
+```
+
+Recompute `sha256(canonical(record without record_hash))` on that line and you get the same 64 characters. The field name is `tail_event_hash` although the tail may be a control record; the name is narrower than the semantics, and it is written down here rather than discovered by the next person who reads the file.
 
 ## What the schema refuses
 
-It refuses in-place edits: a correction is a new record or a named gap, never a rewritten line. It refuses silent absence: an undecided item is `undetermined` with a gap, and undetermined counts against the rate. It refuses meaning-changing flags: the CLI has no strict mode that re-scores, because a flag that changes what was measured forks the data.
+It refuses three conveniences, and each refusal costs something.
 
-Those refusals are cheap to state and expensive to keep. They are the reason a bundle is a record rather than a report with a hash bolted on.
+**No in-place edits.** A correction is a new record or a named gap. The consequence is that a typo in a committed bundle is permanent, which is inconvenient and is the point: a record you can edit is a report with a hash in front of it.
+
+**No silent absence.** An undecided item is an `undetermined` event plus a gap, and undetermined counts in the denominator. A run that could not decide five items reports five items it could not decide rather than a pass rate over the ones it could.
+
+**No meaning-changing flags.** `verify` has no flags. `diff` has one, and it changes the output format only. A CLI where a flag can re-score the data is a CLI where two people can cite the same bundle and mean different numbers.
 
 ---
 

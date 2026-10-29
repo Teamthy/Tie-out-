@@ -87,15 +87,15 @@ export function Landing() {
                 </div>
                 <div>
                   <dt>judge</dt>
-                  <dd className="mono">{shorten(spec.judge, 30)}</dd>
+                  <dd className="mono">{shorten(spec.judge, 26)}</dd>
                 </div>
                 <div>
                   <dt>policy</dt>
-                  <dd className="mono">{shorten(spec.policy, 30)}</dd>
+                  <dd className="mono">{shorten(spec.policy, 26)}</dd>
                 </div>
                 <div>
                   <dt>tail hash</dt>
-                  <dd className="mono">{shorten(spec.tail, 24)}</dd>
+                  <dd className="mono">{shorten(spec.tail, 22)}</dd>
                 </div>
               </dl>
               <p className="specimen-note">
