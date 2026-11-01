@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Markdown, outline } from "../../../components/Markdown";
 import { Byline } from "../../../components/Byline";
 import { Icon } from "../../../components/Icon";
+import { Toc } from "../../../components/Toc";
 import { LinkedInButton, AUTHOR } from "../../../components/LinkedIn";
 import { POSTS, getPost, formatDate } from "../../../lib/posts";
 import { readPost } from "../../../lib/post-content";
@@ -124,24 +125,10 @@ export default function Article({ params }: { params: { slug: string } }) {
           </aside>
         </article>
 
-        <aside className="toc" aria-label="on this page">
-          <p className="toc-head mono">on this page</p>
-          <ol className="toc-list">
-            {toc.map((h) => (
-              <li key={h.id}>
-                <a href={`#${h.id}`}>{h.text}</a>
-              </li>
-            ))}
-          </ol>
-          <div className="toc-foot">
-            <p className="mono small dim">
-              {formatDate(post.date)} · {post.minutes} min read
-            </p>
-            <Link className="toc-top mono small" href="#main">
-              back to top <Icon name="arrow" size={12} />
-            </Link>
-          </div>
-        </aside>
+        <Toc
+          items={toc}
+          meta={`${formatDate(post.date)} · ${post.minutes} min read`}
+        />
       </div>
 
       <nav className="article-nav" aria-label="articles">

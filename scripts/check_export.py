@@ -3,9 +3,10 @@
 
 `npm run build` writes web/out. This script checks the things a build
 will happily produce but a reader would notice: every route exported, the
-author link on every page, twelve articles with a populated "verified
-against" block, and the nested run pages that make the stability pair
-reachable by URL.
+author link on every page, twelve articles that *end* with their own
+"Verified against:" line naming at least three artifacts, the source
+block the site renders beside it, and the nested run pages that make the
+stability pair reachable by URL.
 
 Run after the frontend build; CI does exactly that.
 """
@@ -20,6 +21,7 @@ MIN_PAGES = 25
 ARTICLES = 12
 MIN_SOURCES = 3
 MIN_ARTICLE_CHARS = 4000
+MIN_NAMED_ARTIFACTS = 3
 
 
 def fail(msg: str) -> None:
@@ -75,8 +77,33 @@ def main(out_dir: str = "web/out") -> int:
         if len(text) < MIN_ARTICLE_CHARS:
             fail(f"{a.name}: {len(text)} characters of text, expected at least {MIN_ARTICLE_CHARS}")
 
+        # The article's own closing line, not just the rendered source panel:
+        # it has to sit inside the markdown body and after the last section.
+        if '<article class="doc">' not in html:
+            fail(f"{a.name}: no rendered article body")
+        body = html.split('<article class="doc">', 1)[1].split("</article>", 1)[0]
+        if "Verified against:" not in body:
+            fail(f"{a.name}: the body does not end with its own 'Verified against:' line")
+        footer = body.index("Verified against:")
+        if footer < body.rfind('class="doc-h2"'):
+            fail(f"{a.name}: 'Verified against:' appears before the last section heading")
+        line = re.sub(r"<[^>]+>", "", body[footer : footer + 1400]).split("</p>")[0]
+        # one clause per artifact: split on the separators the line uses
+        clauses = [c for c in re.split(r";|\band\b", line) if len(c.strip()) > 12]
+        if len(clauses) < MIN_NAMED_ARTIFACTS:
+            fail(
+                f"{a.name}: the closing line names {len(clauses)} artifacts, "
+                f"expected at least {MIN_NAMED_ARTIFACTS}"
+            )
+
+        # a regression guard: the rule before the footer must be a rule
+        if re.search(r'<p[^>]*class="doc-p"[^>]*>\s*-{3,}\s*</p>', body):
+            fail(f"{a.name}: a '---' separator rendered as a paragraph")
+
+
     print(
         f"OK: {len(pages)} pages exported, {len(articles)} articles, "
+        f"each ending in a 'Verified against:' line, "
         f"author link on every page, all required routes present"
     )
     return 0

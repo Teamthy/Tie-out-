@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Markdown, outline } from "./Markdown";
+import { Toc } from "./Toc";
 import { Icon } from "./Icon";
 import { PageHead } from "./PageHead";
 import { readDoc, type DocKey } from "../lib/docs";
@@ -95,22 +96,7 @@ export function DocPage({ docKey }: { docKey: DocKey }) {
           </div>
         </article>
 
-        <aside className="toc" aria-label="on this page">
-          <p className="toc-head mono">on this page</p>
-          <ol className="toc-list">
-            {toc.map((h) => (
-              <li key={h.id}>
-                <a href={`#${h.id}`}>{h.text}</a>
-              </li>
-            ))}
-          </ol>
-          <div className="toc-foot">
-            <p className="mono small dim">{docKey}.md</p>
-            <Link className="toc-top mono small" href="#main">
-              back to top <Icon name="arrow" size={12} />
-            </Link>
-          </div>
-        </aside>
+        <Toc items={toc} meta={`${docKey}.md`} />
       </div>
     </div>
   );
