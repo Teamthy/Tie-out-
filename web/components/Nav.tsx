@@ -47,8 +47,9 @@ export function Nav() {
   }, [open]);
 
   return (
-    <header className={`masthead${open ? " is-open" : ""}`}>
-      <div className="shell masthead-inner">
+    <>
+      <header className={`masthead${open ? " is-open" : ""}`}>
+        <div className="shell masthead-inner">
         <Link href="/" className="wordmark" aria-label="tieout, home">
           <span className="wordmark-mark" aria-hidden="true">to</span>
           <span className="wordmark-text">
@@ -93,8 +94,12 @@ export function Nav() {
             <span>{open ? "close" : "menu"}</span>
           </button>
         </div>
-      </div>
+        </div>
+      </header>
 
+      {/* sibling of the header, not a child: .masthead has a backdrop
+          filter, and a filtered ancestor becomes the containing block for
+          position: fixed, which would size this sheet to the header box */}
       <div id="nav-sheet" className="nav-sheet" hidden={!open}>
         <div className="shell nav-sheet-inner">
           <p className="nav-sheet-label">index</p>
@@ -125,6 +130,6 @@ export function Nav() {
           </div>
         </div>
       </div>
-    </header>
+    </>
   );
 }
