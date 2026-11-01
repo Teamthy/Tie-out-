@@ -1163,6 +1163,34 @@ a.card:hover {
 .toc-list a:hover {
   color: var(--text);
 }
+.toc-list a.toc-active {
+  color: var(--text);
+  font-weight: 600;
+}
+.toc-list a.toc-active::before {
+  content: "";
+  display: inline-block;
+  width: 9px;
+  height: 1px;
+  background: var(--text);
+  vertical-align: 4px;
+  margin-right: 6px;
+}
+
+/* the reading position, a hairline under the masthead */
+.read-progress {
+  position: fixed;
+  top: 61px; /* the masthead's lower hairline, not the viewport edge */
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--text);
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  z-index: 45;
+  pointer-events: none;
+  opacity: 0.85;
+}
 .toc-foot {
   margin-top: var(--s3);
   padding-top: 12px;
