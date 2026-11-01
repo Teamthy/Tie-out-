@@ -174,7 +174,12 @@ export function Markdown({ source }: { source: string }) {
           case "h2":
             return (
               <h2 key={key} id={slugify(b.text)} className="doc-h2">
-                <a className="doc-anchor" href={`#${slugify(b.text)}`} aria-hidden="true">
+                <a
+                  className="doc-anchor"
+                  href={`#${slugify(b.text)}`}
+                  aria-hidden="true"
+                  tabIndex={-1}
+                >
                   #
                 </a>
                 <span>{inline(b.text, key)}</span>

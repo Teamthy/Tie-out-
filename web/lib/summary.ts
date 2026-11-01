@@ -173,7 +173,9 @@ export function runRows(): RunRow[] {
     const first = events[0] ?? {};
     return {
       id,
-      agent: (first.target_endpoint ?? manifest.provenance?.target ?? "?").replace(/\s*\(.*\)$/, ""),
+      // the agent is named in provenance; the endpoint is the fallback for
+      // a bundle old enough not to carry one
+      agent: manifest.provenance?.agent ?? first.target_endpoint ?? "?",
       started: (first.started_at ?? manifest.provenance?.started_at ?? "").replace("T", " ").replace("Z", ""),
       format: manifest.bundle_format ?? "?",
       suite: (manifest.provenance?.suite ?? first.family ?? "?").toUpperCase(),

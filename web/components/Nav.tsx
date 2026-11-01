@@ -76,7 +76,7 @@ export function Nav() {
             className="masthead-author"
             href={LINKEDIN_URL}
             target="_blank"
-            rel="noreferrer noopener"
+            rel="me noreferrer noopener"
           >
             <Icon name="arrow-up-right" size={14} />
             <span className="masthead-author-label">author</span>
@@ -118,7 +118,7 @@ export function Nav() {
             ))}
           </ul>
           <div className="nav-sheet-foot">
-            <a href={LINKEDIN_URL} target="_blank" rel="noreferrer noopener" className="btn btn-ghost">
+            <a href={LINKEDIN_URL} target="_blank" rel="me noreferrer noopener" className="btn btn-ghost">
               timothy olusanya <Icon name="arrow-up-right" size={14} />
             </a>
             <span className="mono small dim">evidence, not reports</span>
