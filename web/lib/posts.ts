@@ -213,7 +213,7 @@ export const POSTS: PostMeta[] = [
       ".python-version (3.12) and uv.lock (committed): the deploy's environment pin",
       "tieout/server.py: create_app, best-effort verify_report write, {run_id:path} routes",
       "tests/test_deployment.py: the deployment contract as tests",
-      "Vercel build record, production deployment dpl_5XZRShJAeeVyAtktdYPruuv7B5pX of 4b04034: two services, 36.6s build",
+      "Vercel build records: production deployments 4b04034 (36.6s), d8a5895 (35.7s) and 2f495ff (26.8s), plus the per-service log lines of 2f495ff",
     ],
   },
 ];
