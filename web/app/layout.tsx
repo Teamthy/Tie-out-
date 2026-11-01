@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "@fontsource-variable/jetbrains-mono";
 import "./globals.css";
 
@@ -7,9 +7,25 @@ import { LinkedInButton, AUTHOR } from "../components/LinkedIn";
 import { Nav } from "../components/Nav";
 
 export const metadata: Metadata = {
-  title: "tieout — evidence, not reports",
+  title: {
+    default: "tieout — evidence, not reports",
+    template: "%s · tieout",
+  },
   description:
     "An open harness for agent evaluation and red team runs. Every verdict is a bound, chained, re-derivable event: verify the bundle without trusting the tool, the judge, or the team that ran it.",
+  applicationName: "tieout",
+  authors: [{ name: "Timothy Olusanya", url: "https://www.linkedin.com/in/olusanya-timothy" }],
+  creator: "Timothy Olusanya",
+  openGraph: {
+    siteName: "tieout",
+    type: "website",
+    locale: "en_GB",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#000000",
+  colorScheme: "dark",
 };
 
 const PILLARS = [
