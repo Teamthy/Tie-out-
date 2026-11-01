@@ -85,7 +85,7 @@ export default function RunsPage() {
                     <Link className="inline-link" href={`/run/${r.id}/`}>
                       {r.id}
                     </Link>
-                    <span className="cell-sub mono">{r.format.replace("tieout-bundle/", "v")}</span>
+                    <span className="cell-sub mono">{r.format.replace("tieout-bundle/", "")}</span>
                   </td>
                   <td className="mono small">{r.agent}</td>
                   <td className="mono small">{r.started}</td>

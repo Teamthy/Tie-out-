@@ -22,7 +22,7 @@ export function LinkedInButton({
       className={className}
       href={LINKEDIN_URL}
       target="_blank"
-      rel="noreferrer noopener"
+      rel="me noreferrer noopener"
       aria-label={`${AUTHOR} on LinkedIn`}
     >
       <Icon name={variant === "btn" ? "arrow-up-right" : "link"} size={variant === "btn" ? 14 : 13} />
