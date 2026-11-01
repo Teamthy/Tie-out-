@@ -73,7 +73,7 @@ The same path-shaped id is a traversal risk on the server, which is why `_run_di
 
 The static pages are files. They load with no function involved, at any time, from the edge cache — which is the right hosting model for a site whose content changes when someone commits, not when someone clicks.
 
-The API function cold-starts after idle, which adds a second or two to the first request that arrives after it has been evicted. For a handful of bundles and four pages of docs, that is the entire cost: the evidence does not live on the function, so there is nothing to lose when it sleeps, and nothing to warm before it is useful.
+The API function cold-starts after idle: an evicted function has to boot before it can answer, and that boot is the one latency this design accepts. It is not measured here, because a cold start depends on the platform's scheduling rather than on anything in the bundle. For a handful of bundles and four pages of docs, that is the entire cost: the evidence does not live on the function, so there is nothing to lose when it sleeps, and nothing to warm before it is useful.
 
 What the design gives up is equally clear. There is no background job to re-verify bundles on a schedule, no persistent store for verify reports across requests, and no place to put a long-running diff. Those are all things this project does not need today, and the architecture is honest about that rather than pretending the function is a server.
 
@@ -88,12 +88,13 @@ python -m pytest tests/test_deployment.py -q   # the contract, including the rea
 
 ## The build, as it actually ran
 
-The deployment log is the most honest documentation a static site has, so here are the lines that matter from the production build of this site:
+The deployment log is the most honest documentation a static site has, so here are the lines that matter from the production build of `2f495ff` (deployment `dpl_CBt6sTuEAsbAZFM3vSDvjKskXeFr`, region `iad1`, 2 cores / 8 GB):
 
 ```text
 Detected Next.js version: 14.2.35
 Running "npm run build"
  ✓ Compiled successfully
+   Linting and checking validity of types ...
  ✓ Generating static pages (28/28)
 Route (app)                              Size     First Load JS
 ┌ ○ /                                    …
@@ -101,8 +102,10 @@ Route (app)                              Size     First Load JS
 ├ ● /blog/[slug]                          …
 ├ ● /run/[...id]                          …
 …
-Build Completed in /vercel/output [29s]
+Build Completed in /vercel/output [21s]
 ```
+
+`building_at` 1793547621402 to `ready` 1793547648177 is 26.8 s wall clock, which is the build plus the platform's own packaging; the twenty-one seconds is the part `vercel build` reports. Two earlier deployments on the same configuration took 36.6 s and 35.7 s, so the difference between runs is cache warmth, not configuration.
 
 `●` marks a path rendered from `generateStaticParams` — the twelve articles and the four run pages — and `○` marks a static page rendered once. The static export writes an `index.html` per route, which is why the same tree is served without modification by Vercel's edge network and by a two-line Starlette mount in `tieout serve`.
 
@@ -134,4 +137,4 @@ A viewer can be stateless, served from a cache, rebuilt from a commit, and hoste
 
 ---
 
-**Verified against:** `vercel.json` — the two `services` and three `rewrites`; `main.py`, the ASGI entrypoint the platform imports; `.python-version` (3.12) and `uv.lock`, the environment pin; `tieout/server.py` for `create_app`, the best-effort `verify_report` write and the `{run_id:path}` routes; `tests/test_deployment.py`, the deployment contract as tests; the Vercel build record for production deployment `dpl_5XZRShJAeeVyAtktdYPruuv7B5pX` (commit `4b04034`, two services, `building_at` 1793314527763 → `ready` 1793314564368, i.e. 36.6 s); and the record for the site's current production deployment `dpl_ASRTyCT4dh8ERLpow6jEfAmnNyco` (commit `d8a5895`, `building_at` 1793315817533 → `ready` 1793315853208, i.e. 35.7 s).
+**Verified against:** `vercel.json` — the two `services` and three `rewrites`; `main.py`, the ASGI entrypoint the platform imports; `.python-version` (3.12) and `uv.lock`, the environment pin; `tieout/server.py` for `create_app`, the best-effort `verify_report` write and the `{run_id:path}` routes; `tests/test_deployment.py`, the deployment contract as tests; the Vercel build record for production deployment `dpl_5XZRShJAeeVyAtktdYPruuv7B5pX` (commit `4b04034`, two services, `building_at` 1793314527763 → `ready` 1793314564368, i.e. 36.6 s); and the production deployment records for `d8a5895` (`dpl_ASRTyCT4dh8ERLpow6jEfAmnNyco`, `building_at` 1793315817533 → `ready` 1793315853208, i.e. 35.7 s) and `2f495ff` (`dpl_CBt6sTuEAsbAZFM3vSDvjKskXeFr`, 1793547621402 → 1793547648177, i.e. 26.8 s), with the per-service build log lines quoted from the latter.
